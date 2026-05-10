@@ -90,7 +90,7 @@ namespace StylishLauncherINI
         /// <param name="initialPath"></param>
         public LauncherForm(string initialPath = "")
         {
-            this.Text = "SimpleFolderLauncher";
+            this.Text = "WinSimpleFolderLauncher";
             this.Size = new Size(420, 600);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.DoubleBuffered = true;
@@ -186,7 +186,7 @@ namespace StylishLauncherINI
             {
                 Icon = this.Icon,
                 Visible = true,
-                Text = "SimpleFolderLauncher",
+                Text = "WinSimpleFolderLauncher",
                 ContextMenuStrip = trayMenu
             };
 

@@ -12,9 +12,9 @@ namespace StylishLauncherINI
     public class HelpForm : Form
     {
 
-        private const string GitHubRepoUrl = "https://github.com/takuyash/SimpleFolderLauncher";
-        private const string HelpUrl = "https://takuyash.github.io/SimplefolderlauncherSite/docs.html";
-        private const string LicenseUrl = "https://github.com/takuyash/SimpleFolderLauncher/blob/main/LICENSE";
+        private const string GitHubRepoUrl = "https://github.com/takuyash/WinSimpleFolderLauncher";
+        private const string HelpUrl = "https://takuyash.github.io/WinSimpleFolderLauncherSite/docs.html";
+        private const string LicenseUrl = "https://github.com/takuyash/WinSimpleFolderLauncher/blob/main/LICENSE";
         private Label _updateLabel;
         private FlowLayoutPanel panel;
 
@@ -44,7 +44,7 @@ namespace StylishLauncherINI
             // アプリ名
             panel.Controls.Add(new Label()
             {
-                Text = "SimpleFolderLauncher",
+                Text = "WinSimpleFolderLauncher",
                 Font = new Font("Meiryo UI", 12, FontStyle.Bold),
                 ForeColor = Color.White,
                 AutoSize = true
@@ -125,10 +125,10 @@ namespace StylishLauncherINI
             try
             {
                 using var client = new HttpClient();
-                client.DefaultRequestHeaders.UserAgent.ParseAdd("SimpleFolderLauncher");
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("WinSimpleFolderLauncher");
 
                 var json = await client.GetStringAsync(
-                    "https://api.github.com/repos/takuyash/SimpleFolderLauncher/releases/latest");
+                    "https://api.github.com/repos/takuyash/WinSimpleFolderLauncher/releases/latest");
 
                 using var doc = JsonDocument.Parse(json);
                 var root = doc.RootElement;
