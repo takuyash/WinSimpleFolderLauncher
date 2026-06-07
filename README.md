@@ -58,9 +58,9 @@ Windows 11 / Windows 10
 4. 表示された項目のキー（0-9 / A-Z）を押すだけでフォルダを開けます
 
 ## 起動方法
-・exeを実行すると、タスクトレイに常駐します。  
-・タスクトレイのアイコンを右クリックして、設定画面が開けます。  
-・ランチャー画面は、デフォルトではShift 2回連続 (設定で変更できます)もしくは Ctrl + Shift + i で表示できます。  
+* exeを実行すると、タスクトレイに常駐します。  
+* タスクトレイのアイコンを右クリックして、設定画面が開けます。  
+* ランチャー画面は、デフォルトではShift 2回連続 (設定で変更できます)もしくは Ctrl + Shift + i で表示できます。  
 
 詳細な手順は下記に記載  
 https://takuyash.github.io/WinSimpleFolderLauncherSite/docs.html
@@ -77,9 +77,9 @@ https://takuyash.github.io/WinSimpleFolderLauncherSite/docs.html
 ランチャー表示後は 該当キーを押すだけで即フォルダオープンします。  
 そのためキーボードだけで操作が完結します。
 また、キーを使わずにオープンすることもできます。  
-・↑↓でカーソル移動  
-・マウスでクリックして開く  
-・エンターで開く  
+* ↑↓でカーソル移動  
+* マウスでクリックして開く  
+* エンターで開く  
 
 ### 3. Shift 2回連続で簡単に起動  
 ランチャー画面は、Shift 2回連続 もしくは Ctrl + Shift + i で表示できます。  
@@ -87,10 +87,10 @@ https://takuyash.github.io/WinSimpleFolderLauncherSite/docs.html
 また、ホットキーでの起動のオンオフの変更もできます。  
 
 ### 4. シンプル高速・軽量動作  
-・シンプルなUI  
-・描画コスト極低  
-・ポータブル EXE で動作  
-・起動、アイテムクリックが極めて高速  
+* シンプルなUI  
+* 描画コスト極低  
+* ポータブル EXE で動作  
+* 起動、アイテムクリックが極めて高速  
 
 ### 5. キーワード検索機能  
 キーワードによる検索ができます。
@@ -122,9 +122,9 @@ https://takuyash.github.io/WinSimpleFolderLauncherSite/docs.html
 4. 起動する  
 
 ## その他
-・スタートアップに登録しておくと自動で起動して常駐するので起動忘れの心配がないので設定をお勧めします。  
-・外部キーボードを使用している場合にテンキー入力する場合は、NumLockをONにしてください。  
-・Shiftキーを連続で5回以上押すと、Windowsの固定キー機能の確認ダイアログが表示される場合があります。  
+* スタートアップに登録しておくと自動で起動して常駐するので起動忘れの心配がないので設定をお勧めします。  
+* 外部キーボードを使用している場合にテンキー入力する場合は、NumLockをONにしてください。  
+* Shiftキーを連続で5回以上押すと、Windowsの固定キー機能の確認ダイアログが表示される場合があります。  
   これはOS標準の機能で、本アプリの不具合ではありません。  
 
 ## 免責事項
@@ -218,9 +218,9 @@ No personal information is collected.
 ---
 
 ## How to Launch
-- Running the `.exe` file places the app in the system tray.  
-- Right-click the tray icon to open the settings window.  
-- By default, the launcher can be opened with **double Shift** (configurable) or **Ctrl + Shift + I**.
+*  Running the `.exe` file places the app in the system tray.  
+*  Right-click the tray icon to open the settings window.  
+*  By default, the launcher can be opened with **double Shift** (configurable) or **Ctrl + Shift + I**.
 
 Detailed instructions are available here:  
 https://takuyash.github.io/WinSimpleFolderLauncherSite/en/docs.html
@@ -240,9 +240,9 @@ Once the launcher appears, pressing the corresponding key opens the folder insta
 All operations can be completed using only the keyboard.  
 
 You can also open items using:
-- Arrow keys (↑ ↓) to move the cursor  
-- Mouse clicks  
-- Enter key  
+*  Arrow keys (↑ ↓) to move the cursor  
+*  Mouse clicks  
+*  Enter key  
 
 ### 3. Easy Activation with Double Shift
 The launcher can be displayed using **double Shift** or **Ctrl + Shift + I**.  
@@ -250,10 +250,10 @@ By default, it uses double Shift, but both the key type and the number of presse
 You can also enable or disable hotkey activation entirely.
 
 ### 4. Simple, Fast, and Lightweight
-- Clean and minimal UI  
-- Extremely low rendering cost  
-- Portable EXE  
-- Very fast startup and item launching  
+*  Clean and minimal UI  
+*  Extremely low rendering cost  
+*  Portable EXE  
+*  Very fast startup and item launching  
 
 ### 5. Keyword Search
 Items can be searched by keyword.  
@@ -290,9 +290,9 @@ To update, download the new version and overwrite the existing folder.
 ---
 
 ## Notes
-- It is recommended to register the app in Windows Startup so it launches automatically and is always available.  
-- When using an external keyboard, make sure **NumLock** is ON to use the numeric keypad.  
-- Pressing the Shift key five times or more may trigger the Windows Sticky Keys confirmation dialog.  
+* It is recommended to register the app in Windows Startup so it launches automatically and is always available.  
+*  When using an external keyboard, make sure **NumLock** is ON to use the numeric keypad.  
+*  Pressing the Shift key five times or more may trigger the Windows Sticky Keys confirmation dialog.  
   This is a standard Windows feature and **not a bug** in this application.  
 
 ---
