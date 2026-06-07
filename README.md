@@ -52,7 +52,7 @@ Windows 11 / Windows 10
    1つのフォルダによく使うアプリやフォルダ、ファイルのショートカットを集めて置き、そのフォルダのパスを設定してください。  
    <img src="screenshots/setting.png" width="80%" >  
    
-3. Shift 2回連続 もしくは Ctrl + Shift + i のショートカットでランチャーを呼び出すことができます  
+3. **Shift 2回連続 (設定で変更できます)** もしくは **Ctrl + Shift + i** のショートカットでランチャーを呼び出すことができます  
    <img src="screenshots/launcher.png" width="90%">  
 
 4. 表示された項目のキー（0-9 / A-Z）を押すだけでフォルダを開けます
@@ -60,7 +60,7 @@ Windows 11 / Windows 10
 ## 起動方法
 * exeを実行すると、タスクトレイに常駐します。  
 * タスクトレイのアイコンを右クリックして、設定画面が開けます。  
-* ランチャー画面は、デフォルトではShift 2回連続 (設定で変更できます)もしくは Ctrl + Shift + i で表示できます。  
+* ランチャー画面は、デフォルトでは**Shift 2回連続 (設定で変更できます)**もしくは **Ctrl + Shift + i** で表示できます。  
 
 詳細な手順は下記に記載  
 https://takuyash.github.io/WinSimpleFolderLauncherSite/docs.html
@@ -82,8 +82,8 @@ https://takuyash.github.io/WinSimpleFolderLauncherSite/docs.html
 * エンターで開く  
 
 ### 3. Shift 2回連続で簡単に起動  
-ランチャー画面は、Shift 2回連続 もしくは Ctrl + Shift + i で表示できます。  
-デフォルトではShiftキー2回連続ですが、キーの種類と回数は設定で変更できます。  
+ランチャー画面は、**Shift 2回連続** もしくは **Ctrl + Shift + i** で表示できます。  
+デフォルトでは**Shiftキー2回連続**ですが、キーの種類と回数は設定で変更できます。  
 また、ホットキーでの起動のオンオフの変更もできます。  
 
 ### 4. シンプル高速・軽量動作  
