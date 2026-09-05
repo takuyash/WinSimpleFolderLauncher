@@ -8,6 +8,12 @@ namespace StylishLauncherINI
 {
     static class Program
     {
+
+        // ==========================================
+        // 二重起動防止用 Mutex
+        // ==========================================
+        private static Mutex _mutex;
+
         // --- Win32 API Definitions ---
         private const int WH_KEYBOARD_LL = 13; // OS全体のキー入力を受け取るモード
         private const int WM_KEYDOWN = 0x0100; //キー押す
@@ -118,6 +124,23 @@ namespace StylishLauncherINI
         [STAThread]
         static void Main()
         {
+
+            // ==========================================
+            // 二重起動防止
+            // ==========================================
+            bool createdNew;
+
+            _mutex = new Mutex(
+                true,
+                "StylishLauncherINI_SingleInstance",
+                out createdNew);
+
+            // すでに起動している場合は何もせず終了
+            if (!createdNew)
+            {
+                return;
+            }
+
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
