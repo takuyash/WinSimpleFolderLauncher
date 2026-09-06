@@ -63,6 +63,8 @@ namespace StylishLauncherINI
         private List<TreeNode> flatNodeList = new List<TreeNode>();
         private ImageList iconList; // アイコンリスト
         private Label lblNoPath;
+        private Panel searchPanel; // 検索ボックス用パネル（アイコン＋テキストボックス）
+        private PictureBox picSearchIcon; // 検索アイコン（虫眼鏡）
         private TextBox txtSearch; // 検索ボックス
         private string currentRootPath = ""; // ルートパス保持用
 
@@ -83,6 +85,10 @@ namespace StylishLauncherINI
 
         [DllImport("user32.dll")]
         static extern IntPtr GetForegroundWindow();
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, string lParam);
+        private const int EM_SETCUEBANNER = 0x1501;
 
         /// <summary>
         /// ランチャーフォーム画面
@@ -115,14 +121,23 @@ namespace StylishLauncherINI
             iconList.ImageSize = new Size(16, 16); // アイコンサイズ
 
             // ================================
-            // 検索ボックス
+            // 検索ボックス（アイコン付きパネル）
             // ================================
-            txtSearch = new TextBox
+            searchPanel = new Panel
             {
                 Dock = DockStyle.Top,
+                Height = 26,
+                BackColor = Color.FromArgb(45, 45, 45),
+                BorderStyle = BorderStyle.FixedSingle,
+                Padding = new Padding(4, 0, 2, 0)
+            };
+
+            txtSearch = new TextBox
+            {
+                Dock = DockStyle.Fill,
                 BackColor = Color.FromArgb(45, 45, 45),
                 ForeColor = Color.White,
-                BorderStyle = BorderStyle.FixedSingle,
+                BorderStyle = BorderStyle.None,
                 Font = new Font("Meiryo UI", 10f),
                 TabIndex = 1
             };
@@ -133,6 +148,19 @@ namespace StylishLauncherINI
                     if (fileTree.Nodes.Count > 0) { fileTree.Focus(); e.Handled = true; }
                 }
             };
+
+            picSearchIcon = new PictureBox
+            {
+                Dock = DockStyle.Left,
+                Width = 20,
+                BackColor = Color.Transparent,
+                SizeMode = PictureBoxSizeMode.CenterImage,
+                Image = CreateSearchIcon(Color.Gainsboro, 14)
+            };
+
+            // 追加順に注意：先にFillのTextBox、後からLeftのPictureBoxを足す
+            searchPanel.Controls.Add(txtSearch);
+            searchPanel.Controls.Add(picSearchIcon);
 
             // ================================
             // タスクトレイ
@@ -228,7 +256,7 @@ namespace StylishLauncherINI
             };
 
             this.Controls.Add(fileTree);
-            this.Controls.Add(txtSearch);
+            this.Controls.Add(searchPanel);
             this.Controls.Add(lblNoPath);
 
             nodeContextMenu = new ContextMenuStrip();
@@ -244,6 +272,7 @@ namespace StylishLauncherINI
             this.Shown += (s, e) =>
             {
                 BeginInvoke(new Action(ForceForeground));
+                SetCueBanner(txtSearch, LanguageManager.GetString("SearchPlaceholder"));
             };
 
             this.VisibleChanged += (s, e) =>
@@ -284,6 +313,41 @@ namespace StylishLauncherINI
             menuExit.Text = LanguageManager.GetString("MenuExit");
             menuCopyPath.Text = LanguageManager.GetString("MenuCopyPath");
             lblNoPath.Text = LanguageManager.GetString("LauncherNoPath");
+
+            // ハンドル生成済みの場合のみ設定可能
+            if (txtSearch.IsHandleCreated)
+                SetCueBanner(txtSearch, LanguageManager.GetString("SearchPlaceholder"));
+        }
+
+        /// <summary>
+        /// 検索ボックスの左に表示する虫眼鏡アイコンを生成する
+        /// </summary>
+        /// <param name="color"></param>
+        /// <param name="size"></param>
+        /// <returns></returns>
+        private Bitmap CreateSearchIcon(Color color, int size)
+        {
+            var bmp = new Bitmap(size, size);
+            using (var g = Graphics.FromImage(bmp))
+            using (var pen = new Pen(color, 1.6f))
+            {
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                int circleSize = (int)(size * 0.62);
+                g.DrawEllipse(pen, 1, 1, circleSize, circleSize);
+                g.DrawLine(pen, circleSize - 1, circleSize - 1, size - 1, size - 1);
+            }
+            return bmp;
+        }
+
+        /// <summary>
+        /// TextBoxにネイティブのプレースホルダー（Cue Banner）を設定する
+        /// </summary>
+        /// <param name="tb"></param>
+        /// <param name="text"></param>
+        private void SetCueBanner(TextBox tb, string text)
+        {
+            // wParam=1: フォーカス中も表示（未入力の間はずっと表示される）
+            SendMessage(tb.Handle, EM_SETCUEBANNER, (IntPtr)1, text);
         }
 
         private void ForceForeground()

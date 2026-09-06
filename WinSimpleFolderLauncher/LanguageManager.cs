@@ -44,6 +44,7 @@ namespace StylishLauncherINI
 
         private static readonly Dictionary<string, string> Japanese = new()
         {
+            { "SearchPlaceholder", "ファイル / フォルダーの検索" },
             { "SettingTitle", "設定" },
             { "SettingPath", "フォルダのパス:" },
             { "SettingBrowse", "参照..." },
@@ -78,6 +79,7 @@ namespace StylishLauncherINI
 
         private static readonly Dictionary<string, string> English = new()
         {
+            { "SearchPlaceholder", "Search files / folders" },
             { "SettingTitle", "Settings" },
             { "SettingPath", "Folder Path:" },
             { "SettingBrowse", "Browse..." },
