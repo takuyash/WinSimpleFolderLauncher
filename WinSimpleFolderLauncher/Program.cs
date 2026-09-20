@@ -1,8 +1,5 @@
-﻿using System;
-using System.Diagnostics;
-using System.IO;
+﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Windows.Forms;
 
 namespace WinSimpleFolderLauncherINI
 {
@@ -16,8 +13,8 @@ namespace WinSimpleFolderLauncherINI
 
         // --- Win32 API Definitions ---
         private const int WH_KEYBOARD_LL = 13; // OS全体のキー入力を受け取るモード
-        private const int WM_KEYDOWN = 0x0100; //キー押す
-        private const int WM_KEYUP = 0x0101; //キー離す
+        private const int WM_KEYDOWN = 0x0100;
+        private const int WM_KEYUP = 0x0101;
         private const int WM_SYSKEYDOWN = 0x0104; // Alt絡みのキー押す
         private const int WM_SYSKEYUP = 0x0105; // Alt絡みのキー離す
         private const int VK_LSHIFT = 0xA0; // 左Shift
@@ -62,18 +59,10 @@ namespace WinSimpleFolderLauncherINI
         // フィールド
         private static IntPtr _hookID = IntPtr.Zero;
         private static LowLevelKeyboardProc _proc = HookCallback;
-        private static DateTime _lastShiftTime = DateTime.MinValue;
         private const int DOUBLE_PRESS_MS = 300;
         private static LauncherForm _launcher;
-
         // どこからでも参照できるアイコンオブジェクト
         public static Icon AppIcon;
-
-        // 連打判定用
-        private static int _shiftPressCount = 0;
-
-        // 長押し判定用のフラグ
-        private static bool _isShiftPressed = false;
 
         private static string IniPath =>
             Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.ini");
