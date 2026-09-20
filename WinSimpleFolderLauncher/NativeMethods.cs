@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace WinSimpleFolderLauncherINI
+namespace WinSimpleFolderLauncher
 {
     // アイコン取得用のWin32 API定義
     public static class NativeMethods

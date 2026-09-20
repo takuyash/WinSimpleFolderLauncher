@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-namespace WinSimpleFolderLauncherINI
+namespace WinSimpleFolderLauncher
 {
 
 

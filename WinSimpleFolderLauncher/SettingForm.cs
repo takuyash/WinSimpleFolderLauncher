@@ -4,7 +4,7 @@ using System.Windows.Forms;
 using System.Linq;
 using System.Drawing;
 
-namespace WinSimpleFolderLauncherINI
+namespace WinSimpleFolderLauncher
 {
     /// <summary>
     /// 設定画面

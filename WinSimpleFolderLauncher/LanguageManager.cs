@@ -1,5 +1,5 @@
 ﻿
-namespace WinSimpleFolderLauncherINI
+namespace WinSimpleFolderLauncher
 {
     public static class LanguageManager
     {

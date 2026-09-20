@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-namespace WinSimpleFolderLauncherINI
+namespace WinSimpleFolderLauncher
 {
     static class Program
     {
@@ -121,7 +121,7 @@ namespace WinSimpleFolderLauncherINI
 
             _mutex = new Mutex(
                 true,
-                "WinSimpleFolderLauncherINI_SingleInstance",
+                "WinSimpleFolderLauncher_SingleInstance",
                 out createdNew);
 
             // すでに起動している場合は何もせず終了
