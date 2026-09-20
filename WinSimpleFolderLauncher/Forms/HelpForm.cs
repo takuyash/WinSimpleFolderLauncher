@@ -6,6 +6,7 @@ using System.Windows.Forms;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
+using WinSimpleFolderLauncher.Helpers;
 
 namespace WinSimpleFolderLauncher.Forms
 {

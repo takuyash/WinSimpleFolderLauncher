@@ -1,7 +1,4 @@
-﻿
-using WinSimpleFolderLauncher.Helpers;
-
-namespace WinSimpleFolderLauncher
+﻿namespace WinSimpleFolderLauncher.Helpers
 {
     public static class LanguageManager
     {
