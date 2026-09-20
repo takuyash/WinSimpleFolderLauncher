@@ -3,26 +3,6 @@ using System.Runtime.InteropServices;
 
 namespace WinSimpleFolderLauncherINI
 {
-    public static class IniHelper
-    {
-        public static Dictionary<string, string> ReadIni(string path)
-        {
-            var result = new Dictionary<string, string>();
-            if (!File.Exists(path)) return result;
-
-            foreach (var line in File.ReadAllLines(path))
-            {
-                string trimmed = line.Trim();
-                if (string.IsNullOrEmpty(trimmed)) continue;
-                if (trimmed.StartsWith(";") || trimmed.StartsWith("[")) continue;
-
-                var kv = trimmed.Split(new char[] { '=' }, 2);
-                if (kv.Length == 2)
-                    result[kv[0].Trim()] = kv[1].Trim();
-            }
-            return result;
-        }
-    }
 
     // アイコン取得用のWin32 API定義
     public static class NativeMethods
@@ -103,12 +83,6 @@ namespace WinSimpleFolderLauncherINI
             // AppIconを使用
             if (Program.AppIcon != null)
                 this.Icon = Program.AppIcon;
-
-            iconList = new ImageList
-            {
-                ColorDepth = ColorDepth.Depth32Bit,
-                ImageSize = new Size(16, 16)
-            };
 
             // ImageListの初期化
             iconList = new ImageList();
