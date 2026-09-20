@@ -7,7 +7,7 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace StylishLauncherINI
+namespace WinSimpleFolderLauncherINI
 {
     public class HelpForm : Form
     {

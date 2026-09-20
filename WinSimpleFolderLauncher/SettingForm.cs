@@ -4,7 +4,7 @@ using System.Windows.Forms;
 using System.Linq;
 using System.Drawing;
 
-namespace StylishLauncherINI
+namespace WinSimpleFolderLauncherINI
 {
     /// <summary>
     /// 設定画面

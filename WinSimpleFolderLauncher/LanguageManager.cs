@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace StylishLauncherINI
+namespace WinSimpleFolderLauncherINI
 {
     public static class LanguageManager
     {

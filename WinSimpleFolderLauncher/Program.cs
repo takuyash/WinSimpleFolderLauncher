@@ -4,7 +4,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
-namespace StylishLauncherINI
+namespace WinSimpleFolderLauncherINI
 {
     static class Program
     {
@@ -132,7 +132,7 @@ namespace StylishLauncherINI
 
             _mutex = new Mutex(
                 true,
-                "StylishLauncherINI_SingleInstance",
+                "WinSimpleFolderLauncherINI_SingleInstance",
                 out createdNew);
 
             // すでに起動している場合は何もせず終了

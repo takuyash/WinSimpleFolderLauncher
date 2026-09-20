@@ -6,7 +6,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
-namespace StylishLauncherINI
+namespace WinSimpleFolderLauncherINI
 {
     public static class IniHelper
     {
