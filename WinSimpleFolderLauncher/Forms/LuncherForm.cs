@@ -1,7 +1,8 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
+using WinSimpleFolderLauncher.Helpers;
 
-namespace WinSimpleFolderLauncher
+namespace WinSimpleFolderLauncher.Forms
 {
 
 
@@ -47,18 +48,18 @@ namespace WinSimpleFolderLauncher
         /// <param name="initialPath"></param>
         public LauncherForm(string initialPath = "")
         {
-            this.Text = "WinSimpleFolderLauncher";
-            this.Size = new Size(420, 600);
-            this.StartPosition = FormStartPosition.CenterScreen;
-            this.DoubleBuffered = true;
-            this.FormBorderStyle = FormBorderStyle.FixedSingle;
-            this.MaximizeBox = false;
+            Text = "WinSimpleFolderLauncher";
+            Size = new Size(420, 600);
+            StartPosition = FormStartPosition.CenterScreen;
+            DoubleBuffered = true;
+            FormBorderStyle = FormBorderStyle.FixedSingle;
+            MaximizeBox = false;
 
-            this.KeyPreview = true;
+            KeyPreview = true;
 
             // AppIconを使用
             if (Program.AppIcon != null)
-                this.Icon = Program.AppIcon;
+                Icon = Program.AppIcon;
 
             // ImageListの初期化
             iconList = new ImageList();
@@ -87,7 +88,8 @@ namespace WinSimpleFolderLauncher
                 TabIndex = 1
             };
             txtSearch.TextChanged += (s, e) => ReloadTree(currentRootPath);
-            txtSearch.KeyDown += (s, e) => {
+            txtSearch.KeyDown += (s, e) =>
+            {
                 if (e.KeyCode == Keys.Down || e.KeyCode == Keys.Enter)
                 {
                     if (fileTree.Nodes.Count > 0) { fileTree.Focus(); e.Handled = true; }
@@ -121,8 +123,8 @@ namespace WinSimpleFolderLauncher
                 if (IsOtherFormOpen())
                     return;
 
-                this.Show();
-                this.Activate();
+                Show();
+                Activate();
                 fileTree.Focus();
             });
 
@@ -157,7 +159,7 @@ namespace WinSimpleFolderLauncher
 
             trayIcon = new NotifyIcon
             {
-                Icon = this.Icon,
+                Icon = Icon,
                 Visible = true,
                 Text = "WinSimpleFolderLauncher",
                 ContextMenuStrip = trayMenu
@@ -200,9 +202,9 @@ namespace WinSimpleFolderLauncher
                 Visible = false
             };
 
-            this.Controls.Add(fileTree);
-            this.Controls.Add(searchPanel);
-            this.Controls.Add(lblNoPath);
+            Controls.Add(fileTree);
+            Controls.Add(searchPanel);
+            Controls.Add(lblNoPath);
 
             nodeContextMenu = new ContextMenuStrip();
             menuCopyPath = new ToolStripMenuItem("");
@@ -214,21 +216,21 @@ namespace WinSimpleFolderLauncher
             ReloadTree(initialPath);
 
 
-            this.Shown += (s, e) =>
+            Shown += (s, e) =>
             {
                 BeginInvoke(new Action(ForceForeground));
                 SetCueBanner(txtSearch, LanguageManager.GetString("SearchPlaceholder"));
             };
 
-            this.VisibleChanged += (s, e) =>
+            VisibleChanged += (s, e) =>
             {
-                if (!this.Visible) return;
+                if (!Visible) return;
 
                 var mouseScreen = Screen.FromPoint(Cursor.Position);
-                this.StartPosition = FormStartPosition.Manual;
-                this.Location = new Point(
-                    mouseScreen.Bounds.Left + (mouseScreen.Bounds.Width - this.Width) / 2,
-                    mouseScreen.Bounds.Top + (mouseScreen.Bounds.Height - this.Height) / 2
+                StartPosition = FormStartPosition.Manual;
+                Location = new Point(
+                    mouseScreen.Bounds.Left + (mouseScreen.Bounds.Width - Width) / 2,
+                    mouseScreen.Bounds.Top + (mouseScreen.Bounds.Height - Height) / 2
                 );
             };
         }
@@ -299,17 +301,17 @@ namespace WinSimpleFolderLauncher
         {
             IntPtr fg = GetForegroundWindow();
             uint fgThread = GetWindowThreadProcessId(fg, IntPtr.Zero);
-            uint thisThread = GetWindowThreadProcessId(this.Handle, IntPtr.Zero);
+            uint thisThread = GetWindowThreadProcessId(Handle, IntPtr.Zero);
 
             // フォアグラウンドスレッドと一時的に結合
             AttachThreadInput(thisThread, fgThread, true);
 
-            this.TopMost = true;
-            this.Show();
-            SetForegroundWindow(this.Handle);
-            this.Activate();
-            this.BringToFront();
-            this.TopMost = false;
+            TopMost = true;
+            Show();
+            SetForegroundWindow(Handle);
+            Activate();
+            BringToFront();
+            TopMost = false;
 
             // 結合解除
             AttachThreadInput(thisThread, fgThread, false);
@@ -325,7 +327,7 @@ namespace WinSimpleFolderLauncher
         {
             if (e.KeyCode == Keys.Escape)
             {
-                this.Hide();
+                Hide();
                 e.Handled = true;
                 return;
             }
@@ -352,7 +354,7 @@ namespace WinSimpleFolderLauncher
 
             if (keyData == Keys.Escape)
             {
-                this.Hide();
+                Hide();
                 return true;
             }
 
@@ -430,7 +432,7 @@ namespace WinSimpleFolderLauncher
             if (e.CloseReason == CloseReason.UserClosing)
             {
                 e.Cancel = true;
-                this.Hide();
+                Hide();
                 return;
             }
             base.OnFormClosing(e);
@@ -489,12 +491,12 @@ namespace WinSimpleFolderLauncher
         {
             using (var brush =
                 new System.Drawing.Drawing2D.LinearGradientBrush(
-                    this.ClientRectangle,
+                    ClientRectangle,
                     Color.FromArgb(30, 30, 30),
                     Color.FromArgb(45, 45, 60),
                     90f))
             {
-                e.Graphics.FillRectangle(brush, this.ClientRectangle);
+                e.Graphics.FillRectangle(brush, ClientRectangle);
             }
         }
 
@@ -504,9 +506,9 @@ namespace WinSimpleFolderLauncher
         protected override void OnDeactivate(EventArgs e)
         {
             base.OnDeactivate(e);
-            if (this.Visible)
+            if (Visible)
             {
-                this.Hide();
+                Hide();
             }
         }
 
@@ -735,7 +737,7 @@ namespace WinSimpleFolderLauncher
                         FileName = path,
                         UseShellExecute = true
                     });
-                    this.Hide();
+                    Hide();
                 }
                 catch (Exception ex)
                 {

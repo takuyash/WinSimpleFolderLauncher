@@ -7,7 +7,7 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace WinSimpleFolderLauncher
+namespace WinSimpleFolderLauncher.Forms
 {
     public class HelpForm : Form
     {
@@ -23,16 +23,16 @@ namespace WinSimpleFolderLauncher
 
         public HelpForm()
         {
-            this.Text = LanguageManager.GetString("HelpTitle");
-            this.Size = new Size(420, 260);
-            this.StartPosition = FormStartPosition.CenterParent;
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
-            this.MinimizeBox = false;
+            Text = LanguageManager.GetString("HelpTitle");
+            Size = new Size(420, 260);
+            StartPosition = FormStartPosition.CenterParent;
+            FormBorderStyle = FormBorderStyle.FixedDialog;
+            MaximizeBox = false;
+            MinimizeBox = false;
 
             // ===== ダークテーマ =====
-            this.BackColor = Color.FromArgb(30, 30, 30);
-            this.ForeColor = Color.White;
+            BackColor = Color.FromArgb(30, 30, 30);
+            ForeColor = Color.White;
 
             panel = new FlowLayoutPanel()
             {
@@ -42,7 +42,7 @@ namespace WinSimpleFolderLauncher
                 AutoScroll = true,
                 BackColor = Color.FromArgb(30, 30, 30)
             };
-            this.Controls.Add(panel);
+            Controls.Add(panel);
 
             // アプリ名
             panel.Controls.Add(new Label()
@@ -77,14 +77,14 @@ namespace WinSimpleFolderLauncher
             panel.Controls.Add(_updateLabel);
 
             // 非同期でチェック
-            this.Load += async (s, e) => await CheckForUpdateAsync(panel);
+            Load += async (s, e) => await CheckForUpdateAsync(panel);
 
             LanguageManager.LanguageChanged += UpdateUI;
         }
 
         private void UpdateUI()
         {
-            this.Text = LanguageManager.GetString("HelpTitle");
+            Text = LanguageManager.GetString("HelpTitle");
             // リンクのテキスト更新（簡易化のため再生成はせず構造維持）
             if (panel.Controls.Count >= 5)
             {

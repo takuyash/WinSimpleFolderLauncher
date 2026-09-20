@@ -3,8 +3,9 @@ using System.IO;
 using System.Windows.Forms;
 using System.Linq;
 using System.Drawing;
+using WinSimpleFolderLauncher.Helpers;
 
-namespace WinSimpleFolderLauncher
+namespace WinSimpleFolderLauncher.Forms
 {
     /// <summary>
     /// 設定画面
@@ -33,15 +34,15 @@ namespace WinSimpleFolderLauncher
         {
             iniPath = iniFilePath;
 
-            this.Text = LanguageManager.GetString("SettingTitle");
-            this.Size = new System.Drawing.Size(450, 320);
-            this.StartPosition = FormStartPosition.CenterScreen;
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
+            Text = LanguageManager.GetString("SettingTitle");
+            Size = new Size(450, 320);
+            StartPosition = FormStartPosition.CenterScreen;
+            FormBorderStyle = FormBorderStyle.FixedDialog;
+            MaximizeBox = false;
 
             // ===== ダークテーマ =====
-            this.BackColor = Color.FromArgb(30, 30, 30);
-            this.ForeColor = Color.White;
+            BackColor = Color.FromArgb(30, 30, 30);
+            ForeColor = Color.White;
             Font uiFont = new Font("Meiryo UI", 9f);
 
             lblPath = new Label()
@@ -53,7 +54,7 @@ namespace WinSimpleFolderLauncher
                 ForeColor = Color.Gainsboro,
                 Font = uiFont
             };
-            this.Controls.Add(lblPath);
+            Controls.Add(lblPath);
 
             txtPath = new TextBox()
             {
@@ -65,7 +66,7 @@ namespace WinSimpleFolderLauncher
                 BorderStyle = BorderStyle.FixedSingle,
                 Font = uiFont
             };
-            this.Controls.Add(txtPath);
+            Controls.Add(txtPath);
 
             btnBrowse = new Button()
             {
@@ -79,7 +80,7 @@ namespace WinSimpleFolderLauncher
             };
             btnBrowse.FlatAppearance.BorderColor = Color.FromArgb(80, 80, 80);
             btnBrowse.Click += BtnBrowse_Click;
-            this.Controls.Add(btnBrowse);
+            Controls.Add(btnBrowse);
 
             lblFont = new Label()
             {
@@ -90,7 +91,7 @@ namespace WinSimpleFolderLauncher
                 ForeColor = Color.Gainsboro,
                 Font = uiFont
             };
-            this.Controls.Add(lblFont);
+            Controls.Add(lblFont);
 
             numFontSize = new NumericUpDown()
             {
@@ -105,7 +106,7 @@ namespace WinSimpleFolderLauncher
                 BorderStyle = BorderStyle.FixedSingle,
                 Font = uiFont
             };
-            this.Controls.Add(numFontSize);
+            Controls.Add(numFontSize);
 
             lblLang = new Label()
             {
@@ -116,7 +117,7 @@ namespace WinSimpleFolderLauncher
                 ForeColor = Color.Gainsboro,
                 Font = uiFont
             };
-            this.Controls.Add(lblLang);
+            Controls.Add(lblLang);
 
             cmbLang = new ComboBox()
             {
@@ -131,11 +132,12 @@ namespace WinSimpleFolderLauncher
             cmbLang.Items.Add("日本語");
             cmbLang.Items.Add("en");
             cmbLang.SelectedIndex = LanguageManager.CurrentLanguage == "en" ? 1 : 0;
-            cmbLang.SelectedIndexChanged += (s, e) => {
+            cmbLang.SelectedIndexChanged += (s, e) =>
+            {
                 LanguageManager.SaveLanguage(cmbLang.Text);
                 UpdateUI();
             };
-            this.Controls.Add(cmbLang);
+            Controls.Add(cmbLang);
 
             chkEnableHotKey = new CheckBox()
             {
@@ -146,7 +148,7 @@ namespace WinSimpleFolderLauncher
                 ForeColor = Color.Gainsboro,
                 Font = uiFont
             };
-            this.Controls.Add(chkEnableHotKey);
+            Controls.Add(chkEnableHotKey);
 
             lblTriggerKey = new Label()
             {
@@ -157,7 +159,7 @@ namespace WinSimpleFolderLauncher
                 ForeColor = Color.Gainsboro,
                 Font = uiFont
             };
-            this.Controls.Add(lblTriggerKey);
+            Controls.Add(lblTriggerKey);
 
             cmbTriggerKey = new ComboBox()
             {
@@ -171,7 +173,7 @@ namespace WinSimpleFolderLauncher
             };
             cmbTriggerKey.Items.AddRange(new object[] { "Shift", "Ctrl", "Alt", "Space" });
             cmbTriggerKey.SelectedIndex = 0;
-            this.Controls.Add(cmbTriggerKey);
+            Controls.Add(cmbTriggerKey);
 
             lblLaunchKeyCount = new Label()
             {
@@ -182,7 +184,7 @@ namespace WinSimpleFolderLauncher
                 ForeColor = Color.Gainsboro,
                 Font = uiFont
             };
-            this.Controls.Add(lblLaunchKeyCount);
+            Controls.Add(lblLaunchKeyCount);
 
             cmbLaunchKeyCount = new ComboBox()
             {
@@ -196,7 +198,7 @@ namespace WinSimpleFolderLauncher
             };
             cmbLaunchKeyCount.Items.AddRange(new object[] { "2", "3", "4", "5" });
             cmbLaunchKeyCount.SelectedIndex = 0;
-            this.Controls.Add(cmbLaunchKeyCount);
+            Controls.Add(cmbLaunchKeyCount);
 
             btnSave = new Button()
             {
@@ -210,7 +212,7 @@ namespace WinSimpleFolderLauncher
             };
             btnSave.FlatAppearance.BorderColor = Color.FromArgb(90, 150, 160);
             btnSave.Click += BtnSave_Click;
-            this.Controls.Add(btnSave);
+            Controls.Add(btnSave);
 
             if (File.Exists(iniPath))
             {
@@ -234,7 +236,7 @@ namespace WinSimpleFolderLauncher
 
         private void UpdateUI()
         {
-            this.Text = LanguageManager.GetString("SettingTitle");
+            Text = LanguageManager.GetString("SettingTitle");
             lblPath.Text = LanguageManager.GetString("SettingPath");
             btnBrowse.Text = LanguageManager.GetString("SettingBrowse");
             lblFont.Text = LanguageManager.GetString("SettingFontSize");
@@ -314,19 +316,19 @@ namespace WinSimpleFolderLauncher
             // ⑥ 保存
             try
             {
-            File.WriteAllText(
-                iniPath,
-                $"LauncherFolder={txtPath.Text.Trim()}\n" +
-                $"FontSize={numFontSize.Value}\n" +
-                $"Language={cmbLang.Text}\n" +
-                $"EnableHotKey={chkEnableHotKey.Checked}\n" +
-                $"TriggerKey={cmbTriggerKey.SelectedItem}\n" +
-                $"ShiftPressCount={cmbLaunchKeyCount.SelectedItem}\n"
-            );
+                File.WriteAllText(
+                    iniPath,
+                    $"LauncherFolder={txtPath.Text.Trim()}\n" +
+                    $"FontSize={numFontSize.Value}\n" +
+                    $"Language={cmbLang.Text}\n" +
+                    $"EnableHotKey={chkEnableHotKey.Checked}\n" +
+                    $"TriggerKey={cmbTriggerKey.SelectedItem}\n" +
+                    $"ShiftPressCount={cmbLaunchKeyCount.SelectedItem}\n"
+                );
 
 
                 MessageBox.Show(LanguageManager.GetString("MsgSaveSuccess"));
-                this.Close();
+                Close();
             }
             catch (Exception ex)
             {

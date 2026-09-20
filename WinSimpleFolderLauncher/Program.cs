@@ -1,5 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
+using WinSimpleFolderLauncher.Forms;
+using WinSimpleFolderLauncher.Helpers;
 
 namespace WinSimpleFolderLauncher
 {

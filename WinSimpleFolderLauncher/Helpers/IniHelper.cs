@@ -1,5 +1,4 @@
-﻿
-namespace WinSimpleFolderLauncher
+﻿namespace WinSimpleFolderLauncher.Helpers
 {
     public static class IniHelper
     {
