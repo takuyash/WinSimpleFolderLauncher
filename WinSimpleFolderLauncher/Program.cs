@@ -61,7 +61,7 @@ namespace WinSimpleFolderLauncher
         // フィールド
         private static IntPtr _hookID = IntPtr.Zero;
         private static LowLevelKeyboardProc _proc = HookCallback;
-        private const int DOUBLE_PRESS_MS = 300;
+        private const int DOUBLE_PRESS_MS = 300; //0.3秒
         private static LauncherForm _launcher;
         // どこからでも参照できるアイコンオブジェクト
         public static Icon AppIcon;
