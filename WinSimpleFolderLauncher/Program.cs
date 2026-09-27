@@ -191,6 +191,7 @@ namespace WinSimpleFolderLauncher
         private static IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
         {
             if (!IsHotKeyEnabled())
+                // 次の処理へイベントを渡す
                 return CallNextHookEx(_hookID, nCode, wParam, lParam);
 
             if (nCode >= 0)
@@ -214,6 +215,7 @@ namespace WinSimpleFolderLauncher
                     	// 既に押されている（長押し中）なら無視
                         if (_isKeyPressed)
                         {
+                            // 次の処理へイベントを渡す
                             return CallNextHookEx(_hookID, nCode, wParam, lParam);
                         }
 
@@ -242,6 +244,7 @@ namespace WinSimpleFolderLauncher
                 }
 
             }
+            // 次の処理へイベントを渡す
             return CallNextHookEx(_hookID, nCode, wParam, lParam);
         }
 
@@ -264,6 +267,11 @@ namespace WinSimpleFolderLauncher
             }
         }
 
+        /// <summary>
+        /// 設定ファイル（INI）から「起動トリガーキー」を読み込む
+        /// 設定ファイルがないければ、デフォルトで Shift キー
+        /// </summary>
+        /// <returns></returns>
         private static string GetTriggerKey()
         {
             if (!File.Exists(IniPath)) return "Shift";
@@ -271,6 +279,11 @@ namespace WinSimpleFolderLauncher
             return ini.ContainsKey("TriggerKey") ? ini["TriggerKey"] : "Shift";
         }
 
+        /// <summary>
+        /// ターゲットのキーが押されたか判定
+        /// </summary>
+        /// <param name="vk"></param>
+        /// <returns></returns>
         private static bool IsTargetKey(int vk)
         {
             return GetTriggerKey() switch
@@ -282,6 +295,11 @@ namespace WinSimpleFolderLauncher
             };
         }
 
+        /// <summary>
+        /// アイコンを読み込む
+        /// </summary>
+        /// <param name="fileName"></param>
+        /// <returns></returns>
         private static Icon LoadIcon(string fileName)
         {
             string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, fileName);
