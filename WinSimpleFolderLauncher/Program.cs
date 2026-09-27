@@ -31,6 +31,13 @@ namespace WinSimpleFolderLauncher
         private static int _pressCount = 0;
         private static bool _isKeyPressed = false;
 
+        // ==========================================
+        // 設定キャッシュ（毎キー入力での設定ファイル読み込みを避けるため）
+        // ==========================================
+        private static bool _hotKeyEnabled = true;
+        private static int _shiftPressCount = 2;
+        private static string _triggerKey = "Shift";
+
         // キーボードフック
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
@@ -83,33 +90,57 @@ namespace WinSimpleFolderLauncher
         }
 
         /// <summary>
-        /// ホットキー有効判定（即時反映）
+        /// ホットキー有効判定（キャッシュ済みの値を返す。実際の読み込みは ApplyConfig / ReloadConfig で行う）
         /// </summary>
-        private static bool IsHotKeyEnabled()
+        private static bool IsHotKeyEnabled() => _hotKeyEnabled;
+
+        /// <summary>
+        /// Shift連打回数取得（キャッシュ済みの値を返す）
+        /// </summary>
+        private static int GetShiftPressCount() => _shiftPressCount;
+
+        /// <summary>
+        /// 起動トリガーキー取得（キャッシュ済みの値を返す）
+        /// </summary>
+        private static string GetTriggerKey() => _triggerKey;
+
+        /// <summary>
+        /// 読み込んだ ini の内容を設定キャッシュに反映する
+        /// </summary>
+        private static void ApplyConfig(Dictionary<string, string> ini)
         {
-            if (!File.Exists(IniPath)) return true;
+            _hotKeyEnabled = ini.TryGetValue("EnableHotKey", out var enabledStr)
+                && bool.TryParse(enabledStr, out var enabled)
+                    ? enabled
+                    : true;
 
-            var ini = IniHelper.ReadIni(IniPath);
-            if (!ini.ContainsKey("EnableHotKey")) return true;
+            _shiftPressCount = ini.TryGetValue("ShiftPressCount", out var countStr)
+                && int.TryParse(countStr, out var count)
+                    ? Math.Max(2, Math.Min(5, count))
+                    : 2;
 
-            return bool.TryParse(ini["EnableHotKey"], out bool enabled)
-                ? enabled
-                : true;
+            _triggerKey = ini.TryGetValue("TriggerKey", out var trigger) ? trigger : "Shift";
         }
 
         /// <summary>
-        /// Shift連打回数取得（即時反映）
+        /// 設定ファイルを読み直してキャッシュを更新する。
+        /// 設定画面を保存して閉じたタイミングなど、ini変更後に呼び出す。
+        /// （例: LauncherForm の「設定」メニューで SettingsForm.ShowDialog() の後に Program.ReloadConfig() を呼ぶ）
         /// </summary>
-        private static int GetShiftPressCount()
+        public static void ReloadConfig()
         {
-            if (!File.Exists(IniPath)) return 2;
-
-            var ini = IniHelper.ReadIni(IniPath);
-            if (!ini.ContainsKey("ShiftPressCount")) return 2;
-
-            return int.TryParse(ini["ShiftPressCount"], out int count)
-                ? Math.Max(2, Math.Min(5, count))
-                : 2;
+            try
+            {
+                var ini = File.Exists(IniPath) ? IniHelper.ReadIni(IniPath) : new Dictionary<string, string>();
+                ApplyConfig(ini);
+            }
+            catch
+            {
+                // 読み込み失敗時は安全側のデフォルトにフォールバック
+                _hotKeyEnabled = true;
+                _shiftPressCount = 2;
+                _triggerKey = "Shift";
+            }
         }
 
         [STAThread]
@@ -138,9 +169,11 @@ namespace WinSimpleFolderLauncher
             // アイコンを一度だけ読み込む
             AppIcon = LoadIcon("icon.ico");
 
-            string iniPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.ini");
-            var ini = IniHelper.ReadIni(iniPath);
+            var ini = IniHelper.ReadIni(IniPath);
             string rootPath = ini.ContainsKey("LauncherFolder") ? ini["LauncherFolder"] : "";
+
+            // 起動時に一度だけ設定を読み込み、以降はキャッシュを参照する
+            ApplyConfig(ini);
 
             _launcher = new LauncherForm(rootPath);
             IntPtr forceHandle = _launcher.Handle;
@@ -188,62 +221,77 @@ namespace WinSimpleFolderLauncher
             }
         }
 
+        /// <summary>
+        /// グローバルキーボードフックのコールバック
+        /// OS全体のキー入力のたびに呼ばれるため、内部で例外が発生してもフック自体が
+        /// 無効化されたりアプリがクラッシュしたりしないよう、必ず try/catch で保護
+        /// </summary>
         private static IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
         {
-            if (!IsHotKeyEnabled())
-                // 次の処理へイベントを渡す
-                return CallNextHookEx(_hookID, nCode, wParam, lParam);
-
-            if (nCode >= 0)
+            try
             {
-                int vkCode = Marshal.ReadInt32(lParam);
+                if (!IsHotKeyEnabled())
+                    // 次の処理へイベントを渡す
+                    return CallNextHookEx(_hookID, nCode, wParam, lParam);
 
-                // --- 1. キーが離された時の処理 ---
-                if (wParam == (IntPtr)WM_KEYUP || wParam == (IntPtr)WM_SYSKEYUP)
+                if (nCode >= 0)
                 {
-                    if (IsTargetKey(vkCode))
-                    {
-                        _isKeyPressed = false; // 押し下げ状態を解除
-                    }
-                }
+                    int vkCode = Marshal.ReadInt32(lParam);
 
-                // --- 2. キーが押された時の処理
-                if (wParam == (IntPtr)WM_KEYDOWN || wParam == (IntPtr)WM_SYSKEYDOWN)
-                {
-                    if (IsTargetKey(vkCode))
+                    // --- 1. キーが離された時の処理 ---
+                    if (wParam == (IntPtr)WM_KEYUP || wParam == (IntPtr)WM_SYSKEYUP)
                     {
-                    	// 既に押されている（長押し中）なら無視
-                        if (_isKeyPressed)
+                        if (IsTargetKey(vkCode))
                         {
-                            // 次の処理へイベントを渡す
-                            return CallNextHookEx(_hookID, nCode, wParam, lParam);
+                            _isKeyPressed = false; // 押し下げ状態を解除
                         }
+                    }
 
-                        _isKeyPressed = true; // 押し下げ状態を記録
-
-                        var now = DateTime.Now;
-                        _pressCount = (now - _lastKeyTime).TotalMilliseconds <= DOUBLE_PRESS_MS
-                            ? _pressCount + 1
-                            : 1;
-
-                        _lastKeyTime = now;
-
-                        if (_pressCount >= GetShiftPressCount())
+                    // --- 2. キーが押された時の処理
+                    if (wParam == (IntPtr)WM_KEYDOWN || wParam == (IntPtr)WM_SYSKEYDOWN)
+                    {
+                        if (IsTargetKey(vkCode))
                         {
-                            _launcher.BeginInvoke(new Action(ShowLauncher));
+                            // 既に押されている（長押し中）なら無視
+                            if (_isKeyPressed)
+                            {
+                                // 次の処理へイベントを渡す
+                                return CallNextHookEx(_hookID, nCode, wParam, lParam);
+                            }
+
+                            _isKeyPressed = true; // 押し下げ状態を記録
+
+                            var now = DateTime.Now;
+                            _pressCount = (now - _lastKeyTime).TotalMilliseconds <= DOUBLE_PRESS_MS
+                                ? _pressCount + 1
+                                : 1;
+
+                            _lastKeyTime = now;
+
+                            if (_pressCount >= GetShiftPressCount())
+                            {
+                                _launcher.BeginInvoke(new Action(ShowLauncher));
+                                _pressCount = 0;
+                                _lastKeyTime = DateTime.MinValue;
+                            }
+                        }
+                        else
+                        {
                             _pressCount = 0;
                             _lastKeyTime = DateTime.MinValue;
                         }
-                    }
-                    else
-                    {
-                        _pressCount = 0;
-                        _lastKeyTime = DateTime.MinValue;
+
                     }
 
                 }
-
             }
+            catch (Exception ex)
+            {
+                // フック内で例外を握りつぶし、システム全体のキー入力やアプリ自体への
+                // 影響を防ぐ（デバッグ時にのみ出力を確認できるようにしておく）
+                Debug.WriteLine($"[WinSimpleFolderLauncher] HookCallback error: {ex}");
+            }
+
             // 次の処理へイベントを渡す
             return CallNextHookEx(_hookID, nCode, wParam, lParam);
         }
@@ -265,18 +313,6 @@ namespace WinSimpleFolderLauncher
                 }
                 base.WndProc(ref m);
             }
-        }
-
-        /// <summary>
-        /// 設定ファイル（INI）から「起動トリガーキー」を読み込む
-        /// 設定ファイルがないければ、デフォルトで Shift キー
-        /// </summary>
-        /// <returns></returns>
-        private static string GetTriggerKey()
-        {
-            if (!File.Exists(IniPath)) return "Shift";
-            var ini = IniHelper.ReadIni(IniPath);
-            return ini.ContainsKey("TriggerKey") ? ini["TriggerKey"] : "Shift";
         }
 
         /// <summary>

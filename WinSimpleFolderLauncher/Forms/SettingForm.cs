@@ -326,6 +326,9 @@ namespace WinSimpleFolderLauncher.Forms
                     $"ShiftPressCount={cmbLaunchKeyCount.SelectedItem}\n"
                 );
 
+                // Program側でキャッシュしているホットキー関連設定（EnableHotKey / TriggerKey / ShiftPressCount）を
+                // 保存直後に読み直して即時反映させる
+                Program.ReloadConfig();
 
                 MessageBox.Show(LanguageManager.GetString("MsgSaveSuccess"));
                 Close();
