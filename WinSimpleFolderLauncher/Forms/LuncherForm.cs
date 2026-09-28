@@ -9,16 +9,37 @@ namespace WinSimpleFolderLauncher.Forms
 
     public class LauncherForm : Form
     {
-        private TreeView fileTree;
+        // ===== 共通 =====
         private ContextMenuStrip nodeContextMenu;
         private ToolStripMenuItem menuCopyPath; // 多言語化のため保持
-        private List<TreeNode> flatNodeList = new List<TreeNode>();
-        private ImageList iconList; // アイコンリスト
+        private ImageList iconList;             // アイコンリスト（両表示で共用）
         private Label lblNoPath;
-        private Panel searchPanel; // 検索ボックス用パネル（アイコン＋テキストボックス）
+        private string currentRootPath = "";    // ルートパス保持用
+        private bool explorerMode = false;      // true: エクスプローラー風 / false: ツリー
+        private bool? appliedExplorerMode = null; // 直近で見た目を適用したモード
+
+        private static string IniFilePath =>
+            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.ini");
+
+        // ===== ツリー表示（ダーク） =====
+        private TreeView fileTree;
+        private List<TreeNode> flatNodeList = new List<TreeNode>();
+        private Panel searchPanel;        // 検索ボックス用パネル（アイコン＋テキストボックス）
         private PictureBox picSearchIcon; // 検索アイコン（虫眼鏡）
-        private TextBox txtSearch; // 検索ボックス
-        private string currentRootPath = ""; // ルートパス保持用
+        private TextBox txtSearch;        // 検索ボックス
+
+        // ===== エクスプローラー風表示 =====
+        private ListView fileListView;
+        private Panel navBar;
+        private FlowLayoutPanel breadcrumbPanel;
+        private TextBox txtExplorerSearch;
+        private List<ListViewItem> flatItemList = new List<ListViewItem>();
+        private string currentPath = "";  // 現在表示中のフォルダ（rootPath より上には行かない）
+
+        private static readonly string ExplorerFontName = "Segoe UI";
+        private static readonly Color NavBarSeparator = Color.FromArgb(229, 229, 229);
+        private static readonly Color SearchBoxBack = Color.FromArgb(243, 243, 243);
+        private static readonly Color SearchBoxBorder = Color.FromArgb(213, 213, 213);
 
         // タスクトレイ
         private NotifyIcon trayIcon;
@@ -49,7 +70,7 @@ namespace WinSimpleFolderLauncher.Forms
         public LauncherForm(string initialPath = "")
         {
             Text = "WinSimpleFolderLauncher";
-            Size = new Size(420, 600);
+            Size = new Size(420, 600); // モードに応じて ApplyViewMode で調整
             StartPosition = FormStartPosition.CenterScreen;
             DoubleBuffered = true;
             FormBorderStyle = FormBorderStyle.FixedSingle;
@@ -67,7 +88,7 @@ namespace WinSimpleFolderLauncher.Forms
             iconList.ImageSize = new Size(16, 16); // アイコンサイズ
 
             // ================================
-            // 検索ボックス（アイコン付きパネル）
+            // 検索ボックス（ツリー表示用：アイコン付きパネル）
             // ================================
             searchPanel = new Panel
             {
@@ -87,7 +108,10 @@ namespace WinSimpleFolderLauncher.Forms
                 Font = new Font("Meiryo UI", 10f),
                 TabIndex = 1
             };
-            txtSearch.TextChanged += (s, e) => ReloadTree(currentRootPath);
+            txtSearch.TextChanged += (s, e) =>
+            {
+                if (!explorerMode) ReloadView(currentRootPath);
+            };
             txtSearch.KeyDown += (s, e) =>
             {
                 if (e.KeyCode == Keys.Down || e.KeyCode == Keys.Enter)
@@ -110,12 +134,14 @@ namespace WinSimpleFolderLauncher.Forms
             searchPanel.Controls.Add(picSearchIcon);
 
             // ================================
+            // 上部ナビゲーションバー（エクスプローラー風表示用）
+            // ================================
+            BuildExplorerNavBar();
+
+            // ================================
             // タスクトレイ
             // ================================
             trayMenu = new ContextMenuStrip();
-            trayMenu.Renderer = new ToolStripProfessionalRenderer(new DarkColorTable());
-            trayMenu.BackColor = Color.FromArgb(35, 35, 35);
-            trayMenu.ForeColor = Color.White;
 
             menuOpen = new ToolStripMenuItem("", null, (s, e) =>
             {
@@ -125,16 +151,14 @@ namespace WinSimpleFolderLauncher.Forms
 
                 Show();
                 Activate();
-                fileTree.Focus();
+                FocusMainControl();
             });
 
             menuSetting = new ToolStripMenuItem("", null, (s, e) =>
             {
-                string iniPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.ini");
-
-                var settings = new SettingsForm(iniPath);
+                var settings = new SettingsForm(IniFilePath);
                 settings.ShowDialog();
-                ReloadTree();
+                ReloadView();
             });
 
             menuHelp = new ToolStripMenuItem("", null, (s, e) =>
@@ -171,8 +195,9 @@ namespace WinSimpleFolderLauncher.Forms
                     trayMenu.Show(Cursor.Position);
             };
 
-
-            // TreeView
+            // ================================
+            // TreeView（ツリー表示）
+            // ================================
             fileTree = new TreeView
             {
                 Dock = DockStyle.Fill,
@@ -191,6 +216,35 @@ namespace WinSimpleFolderLauncher.Forms
             fileTree.KeyDown += FileTree_KeyDown;
             fileTree.NodeMouseClick += FileTree_NodeMouseClick;
 
+            // ================================
+            // ListView（エクスプローラー風の「詳細」ビュー）
+            // ================================
+            fileListView = new ListView
+            {
+                Dock = DockStyle.Fill,
+                View = View.Details,
+                FullRowSelect = true,
+                MultiSelect = false,
+                HideSelection = false,
+                GridLines = false,
+                BorderStyle = BorderStyle.None,
+                SmallImageList = iconList,
+                Font = new Font(ExplorerFontName, 9f),
+                BackColor = Color.White,
+                ForeColor = Color.Black,
+                Visible = false
+            };
+            fileListView.Columns.Add("", 300, HorizontalAlignment.Left); // 名前
+            fileListView.Columns.Add("", 150, HorizontalAlignment.Left); // 更新日時
+
+            fileListView.ItemActivate += (s, e) =>
+            {
+                if (fileListView.SelectedItems.Count > 0)
+                    OpenListItem(fileListView.SelectedItems[0]);
+            };
+            fileListView.KeyDown += FileListView_KeyDown;
+            fileListView.MouseClick += FileListView_MouseClick;
+
             // パス未設定時メッセージ
             lblNoPath = new Label
             {
@@ -202,24 +256,26 @@ namespace WinSimpleFolderLauncher.Forms
                 Visible = false
             };
 
+            // Dock順に注意：Fill系を先に、Top系（検索/ナビバー）を後に追加する
             Controls.Add(fileTree);
-            Controls.Add(searchPanel);
+            Controls.Add(fileListView);
             Controls.Add(lblNoPath);
+            Controls.Add(searchPanel);
+            Controls.Add(navBar);
 
             nodeContextMenu = new ContextMenuStrip();
             menuCopyPath = new ToolStripMenuItem("");
             menuCopyPath.Click += CopyPathItem_Click;
             nodeContextMenu.Items.Add(menuCopyPath);
 
-            // 初期言語適用
-            UpdateUILanguage();
-            ReloadTree(initialPath);
-
+            // 初期言語適用＆表示
+            ReloadView(initialPath);
 
             Shown += (s, e) =>
             {
                 BeginInvoke(new Action(ForceForeground));
                 SetCueBanner(txtSearch, LanguageManager.GetString("SearchPlaceholder"));
+                UpdateExplorerCueBanner();
             };
 
             VisibleChanged += (s, e) =>
@@ -233,6 +289,108 @@ namespace WinSimpleFolderLauncher.Forms
                     mouseScreen.Bounds.Top + (mouseScreen.Bounds.Height - Height) / 2
                 );
             };
+        }
+
+        /// <summary>
+        /// エクスプローラー風の上部ナビゲーションバー（左:パンくず／右:検索ボックス）を作る
+        /// </summary>
+        private void BuildExplorerNavBar()
+        {
+            navBar = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 38,
+                BackColor = Color.White,
+                Padding = new Padding(6, 4, 6, 4),
+                Visible = false
+            };
+
+            var navBarDivider = new Panel
+            {
+                Dock = DockStyle.Bottom,
+                Height = 1,
+                BackColor = NavBarSeparator
+            };
+
+            // --- 右側：検索ボックス ---
+            var searchContainer = new Panel
+            {
+                Dock = DockStyle.Right,
+                Width = 200,
+                Padding = new Padding(4, 2, 0, 2)
+            };
+
+            var searchBox = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = SearchBoxBack,
+                Padding = new Padding(4, 0, 4, 0)
+            };
+            searchBox.Paint += (s, e) =>
+            {
+                using (var pen = new Pen(SearchBoxBorder))
+                {
+                    var r = searchBox.ClientRectangle;
+                    r.Width -= 1;
+                    r.Height -= 1;
+                    e.Graphics.DrawRectangle(pen, r);
+                }
+            };
+
+            var searchIconPanel = new Panel
+            {
+                Dock = DockStyle.Left,
+                Width = 22,
+                BackColor = Color.Transparent
+            };
+            searchIconPanel.Paint += SearchIcon_Paint;
+
+            txtExplorerSearch = new TextBox
+            {
+                Dock = DockStyle.Fill,
+                BackColor = SearchBoxBack,
+                ForeColor = Color.Black,
+                BorderStyle = BorderStyle.None,
+                Font = new Font(ExplorerFontName, 9f),
+                TabIndex = 1
+            };
+            txtExplorerSearch.TextChanged += (s, e) =>
+            {
+                if (explorerMode) PopulateList(txtExplorerSearch.Text);
+            };
+            txtExplorerSearch.KeyDown += (s, e) =>
+            {
+                if (e.KeyCode == Keys.Down || e.KeyCode == Keys.Enter)
+                {
+                    if (fileListView.Items.Count > 0)
+                    {
+                        fileListView.Focus();
+                        fileListView.Items[0].Selected = true;
+                        fileListView.Items[0].Focused = true;
+                        e.Handled = true;
+                    }
+                }
+            };
+            // ハンドル生成（再生成）時にプレースホルダーを設定し直す
+            txtExplorerSearch.HandleCreated += (s, e) => UpdateExplorerCueBanner();
+
+            searchBox.Controls.Add(txtExplorerSearch);
+            searchBox.Controls.Add(searchIconPanel);
+            searchContainer.Controls.Add(searchBox);
+
+            // --- 左側：パンくずリスト ---
+            breadcrumbPanel = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                WrapContents = false,
+                FlowDirection = FlowDirection.LeftToRight,
+                BackColor = Color.White,
+                Padding = new Padding(2, 8, 2, 0)
+            };
+
+            navBar.Controls.Add(breadcrumbPanel);
+            navBar.Controls.Add(searchContainer);
+            navBar.Controls.Add(navBarDivider);
         }
 
         /// <summary>
@@ -250,6 +408,53 @@ namespace WinSimpleFolderLauncher.Forms
         }
 
         /// <summary>
+        /// 現在の表示モードに応じたコントロールへフォーカスを移す
+        /// </summary>
+        private void FocusMainControl()
+        {
+            if (explorerMode) fileListView.Focus();
+            else fileTree.Focus();
+        }
+
+        /// <summary>
+        /// 表示モード（ツリー / エクスプローラー風）に応じて見た目を切り替える
+        /// </summary>
+        private void ApplyViewMode()
+        {
+            if (appliedExplorerMode == explorerMode) return;
+            appliedExplorerMode = explorerMode;
+
+            Size = explorerMode ? new Size(560, 620) : new Size(420, 600);
+            BackColor = explorerMode ? Color.White : SystemColors.Control;
+
+            searchPanel.Visible = !explorerMode;
+            navBar.Visible = explorerMode;
+            if (explorerMode) fileTree.Visible = false;
+            else fileListView.Visible = false;
+
+            if (explorerMode)
+            {
+                lblNoPath.ForeColor = Color.Black;
+                lblNoPath.BackColor = Color.White;
+
+                trayMenu.Renderer = new ToolStripProfessionalRenderer();
+                trayMenu.BackColor = SystemColors.Control;
+                trayMenu.ForeColor = SystemColors.ControlText;
+            }
+            else
+            {
+                lblNoPath.ForeColor = Color.LightGray;
+                lblNoPath.BackColor = Color.Transparent;
+
+                trayMenu.Renderer = new ToolStripProfessionalRenderer(new DarkColorTable());
+                trayMenu.BackColor = Color.FromArgb(35, 35, 35);
+                trayMenu.ForeColor = Color.White;
+            }
+
+            Invalidate();
+        }
+
+        /// <summary>
         /// UIの表示文字列を現在の言語設定に更新する
         /// </summary>
         private void UpdateUILanguage()
@@ -260,18 +465,18 @@ namespace WinSimpleFolderLauncher.Forms
             menuExit.Text = LanguageManager.GetString("MenuExit");
             menuCopyPath.Text = LanguageManager.GetString("MenuCopyPath");
             lblNoPath.Text = LanguageManager.GetString("LauncherNoPath");
+            fileListView.Columns[0].Text = LanguageManager.GetString("ColName");
+            fileListView.Columns[1].Text = LanguageManager.GetString("ColModified");
 
             // ハンドル生成済みの場合のみ設定可能
             if (txtSearch.IsHandleCreated)
                 SetCueBanner(txtSearch, LanguageManager.GetString("SearchPlaceholder"));
+            UpdateExplorerCueBanner();
         }
 
         /// <summary>
-        /// 検索ボックスの左に表示する虫眼鏡アイコンを生成する
+        /// 検索ボックスの左に表示する虫眼鏡アイコンを生成する（ツリー表示用）
         /// </summary>
-        /// <param name="color"></param>
-        /// <param name="size"></param>
-        /// <returns></returns>
         private Bitmap CreateSearchIcon(Color color, int size)
         {
             var bmp = new Bitmap(size, size);
@@ -287,14 +492,43 @@ namespace WinSimpleFolderLauncher.Forms
         }
 
         /// <summary>
+        /// 検索ボックス左の虫眼鏡アイコンを描画する（エクスプローラー風表示用）
+        /// </summary>
+        private void SearchIcon_Paint(object sender, PaintEventArgs e)
+        {
+            var g = e.Graphics;
+            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            using (var pen = new Pen(Color.FromArgb(120, 120, 120), 1.4f))
+            {
+                var rect = new Rectangle(4, 4, 9, 9);
+                g.DrawEllipse(pen, rect);
+                g.DrawLine(pen, rect.Right - 1, rect.Bottom - 1, rect.Right + 4, rect.Bottom + 4);
+            }
+        }
+
+        /// <summary>
         /// TextBoxにネイティブのプレースホルダー（Cue Banner）を設定する
         /// </summary>
-        /// <param name="tb"></param>
-        /// <param name="text"></param>
-        private void SetCueBanner(TextBox tb, string text)
+        /// <param name="showOnFocus">true: フォーカス中も表示 / false: フォーカスで消える</param>
+        private void SetCueBanner(TextBox tb, string text, bool showOnFocus = true)
         {
-            // wParam=1: フォーカス中も表示（未入力の間はずっと表示される）
-            SendMessage(tb.Handle, EM_SETCUEBANNER, (IntPtr)1, text);
+            SendMessage(tb.Handle, EM_SETCUEBANNER, (IntPtr)(showOnFocus ? 1 : 0), text);
+        }
+
+        /// <summary>
+        /// エクスプローラー風の検索ボックスのプレースホルダーを「(フォルダ名)の検索」に更新する
+        /// </summary>
+        private void UpdateExplorerCueBanner()
+        {
+            if (!txtExplorerSearch.IsHandleCreated || string.IsNullOrEmpty(currentPath)) return;
+
+            string folderName = Path.GetFileName(currentPath.TrimEnd(Path.DirectorySeparatorChar));
+            if (string.IsNullOrEmpty(folderName)) folderName = currentPath;
+
+            SetCueBanner(
+                txtExplorerSearch,
+                string.Format(LanguageManager.GetString("SearchPlaceholderIn"), folderName),
+                false);
         }
 
         private void ForceForeground()
@@ -316,7 +550,7 @@ namespace WinSimpleFolderLauncher.Forms
             // 結合解除
             AttachThreadInput(thisThread, fgThread, false);
 
-            fileTree.Focus();
+            FocusMainControl();
         }
 
         /// <summary>
@@ -342,14 +576,21 @@ namespace WinSimpleFolderLauncher.Forms
         /// <returns></returns>
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
         {
-
-            if (keyData == Keys.Enter && fileTree.Focused)
+            if (keyData == Keys.Enter)
             {
-                if (fileTree.SelectedNode != null)
+                if (!explorerMode && fileTree.Focused)
                 {
-                    OpenFileOrFolder(fileTree.SelectedNode);
+                    if (fileTree.SelectedNode != null)
+                        OpenFileOrFolder(fileTree.SelectedNode);
+                    return true;
                 }
-                return true;
+
+                if (explorerMode && fileListView.Focused)
+                {
+                    if (fileListView.SelectedItems.Count > 0)
+                        OpenListItem(fileListView.SelectedItems[0]);
+                    return true;
+                }
             }
 
             if (keyData == Keys.Escape)
@@ -362,36 +603,26 @@ namespace WinSimpleFolderLauncher.Forms
         }
 
         /// <summary>
-        /// リロード処理
+        /// config.ini を読み直し、表示モードに応じて再構築する
         /// </summary>
-        /// <param name="rootPath"></param>
-        private void ReloadTree(string rootPath = "")
+        private void ReloadView(string rootPath = "")
         {
             // 設定変更後の言語を反映
             LanguageManager.LoadSettings();
+
+            var ini = IniHelper.ReadIni(IniFilePath);
+
+            // 表示モード（ViewStyle=Explorer のときだけエクスプローラー風）
+            explorerMode = ini.TryGetValue("ViewStyle", out string style)
+                && string.Equals(style, "Explorer", StringComparison.OrdinalIgnoreCase);
+            ApplyViewMode();
             UpdateUILanguage();
-
-            fileTree.BeginUpdate(); // 描画停止で高速化
-            fileTree.Nodes.Clear();
-            flatNodeList.Clear();
-            iconList.Images.Clear(); // リロード時にアイコンキャッシュもクリア
-
-            string iniPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.ini");
-            var ini = IniHelper.ReadIni(iniPath);
 
             // フォントサイズ・比率設定の反映
             float fontSize = 10f;
             if (ini.ContainsKey("FontSize") && float.TryParse(ini["FontSize"], out float fs)) fontSize = fs;
-
             float ratio = fontSize / 10f;
             int iconSize = (int)(16 * ratio);
-
-            Font newFont = new Font("Meiryo UI", fontSize);
-            fileTree.Font = newFont;
-            txtSearch.Font = newFont;
-            lblNoPath.Font = newFont;
-            fileTree.ItemHeight = (int)(20 * ratio); // 比率に応じて高さを調整
-            iconList.ImageSize = new Size(iconSize, iconSize);
 
             if (string.IsNullOrWhiteSpace(rootPath))
             {
@@ -399,7 +630,32 @@ namespace WinSimpleFolderLauncher.Forms
             }
             currentRootPath = rootPath;
 
-            if (string.IsNullOrWhiteSpace(rootPath) || !Directory.Exists(rootPath))
+            iconList.Images.Clear(); // リロード時にアイコンキャッシュもクリア
+            iconList.ImageSize = new Size(iconSize, iconSize);
+
+            if (explorerMode) ReloadExplorerView(fontSize);
+            else ReloadTreeView(fontSize, ratio);
+        }
+
+        /// <summary>
+        /// ツリー表示のリロード
+        /// </summary>
+        private void ReloadTreeView(float fontSize, float ratio)
+        {
+            fileListView.Items.Clear();
+            flatItemList.Clear();
+
+            fileTree.BeginUpdate(); // 描画停止で高速化
+            fileTree.Nodes.Clear();
+            flatNodeList.Clear();
+
+            Font newFont = new Font("Meiryo UI", fontSize);
+            fileTree.Font = newFont;
+            txtSearch.Font = newFont;
+            lblNoPath.Font = newFont;
+            fileTree.ItemHeight = (int)(20 * ratio); // 比率に応じて高さを調整
+
+            if (string.IsNullOrWhiteSpace(currentRootPath) || !Directory.Exists(currentRootPath))
             {
                 fileTree.Visible = false;
                 lblNoPath.Visible = true;
@@ -410,7 +666,7 @@ namespace WinSimpleFolderLauncher.Forms
             fileTree.Visible = true;
             lblNoPath.Visible = false;
 
-            LoadFolder(rootPath, fileTree.Nodes, true, txtSearch.Text.ToLower()); // 第4引数でフィルタ
+            LoadFolder(currentRootPath, fileTree.Nodes, true, txtSearch.Text.ToLower()); // 第4引数でフィルタ
             fileTree.EndUpdate();
 
             BuildFlatNodeList(fileTree.Nodes);
@@ -424,9 +680,238 @@ namespace WinSimpleFolderLauncher.Forms
         }
 
         /// <summary>
-        /// 
+        /// エクスプローラー風表示のリロード（ルートフォルダから表示し直す）
         /// </summary>
-        /// <param name="e"></param>
+        private void ReloadExplorerView(float fontSize)
+        {
+            fileTree.Nodes.Clear();
+            flatNodeList.Clear();
+
+            Font newFont = new Font(ExplorerFontName, fontSize * 0.9f);
+            fileListView.Font = newFont;
+            txtExplorerSearch.Font = newFont;
+            breadcrumbPanel.Font = newFont;
+            lblNoPath.Font = new Font(ExplorerFontName, fontSize);
+
+            if (string.IsNullOrWhiteSpace(currentRootPath) || !Directory.Exists(currentRootPath))
+            {
+                fileListView.Visible = false;
+                navBar.Visible = false;
+                lblNoPath.Visible = true;
+                return;
+            }
+
+            fileListView.Visible = true;
+            navBar.Visible = true;
+            lblNoPath.Visible = false;
+
+            NavigateTo(currentRootPath);
+        }
+
+        /// <summary>
+        /// 指定フォルダへ移動し、パンくずリストと一覧を更新する
+        /// </summary>
+        private void NavigateTo(string path)
+        {
+            if (!Directory.Exists(path)) return;
+
+            currentPath = path;
+            txtExplorerSearch.Text = ""; // フォルダ移動時は絞り込みをリセット
+            RebuildBreadcrumb();
+            UpdateExplorerCueBanner();
+            PopulateList("");
+        }
+
+        /// <summary>
+        /// パンくずリストを ルート 〜 currentPath の範囲で組み立てる
+        /// </summary>
+        private void RebuildBreadcrumb()
+        {
+            breadcrumbPanel.SuspendLayout();
+            foreach (Control c in breadcrumbPanel.Controls) c.Dispose();
+            breadcrumbPanel.Controls.Clear();
+
+            var crumbs = new List<(string name, string path)>();
+            string rootName = Path.GetFileName(currentRootPath.TrimEnd(Path.DirectorySeparatorChar));
+            if (string.IsNullOrEmpty(rootName)) rootName = currentRootPath;
+            crumbs.Add((rootName, currentRootPath));
+
+            string rel = currentPath.Length > currentRootPath.Length
+                ? currentPath.Substring(currentRootPath.Length).Trim(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                : "";
+
+            if (!string.IsNullOrEmpty(rel))
+            {
+                var parts = rel.Split(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries);
+                string acc = currentRootPath;
+                foreach (var part in parts)
+                {
+                    acc = Path.Combine(acc, part);
+                    crumbs.Add((part, acc));
+                }
+            }
+
+            for (int i = 0; i < crumbs.Count; i++)
+            {
+                bool isLast = (i == crumbs.Count - 1);
+                var crumb = crumbs[i];
+
+                if (i > 0)
+                {
+                    var sep = new Label
+                    {
+                        Text = ">",
+                        AutoSize = true,
+                        Margin = new Padding(4, 3, 4, 0),
+                        ForeColor = Color.FromArgb(140, 140, 140),
+                        Font = new Font(ExplorerFontName, 9f)
+                    };
+                    breadcrumbPanel.Controls.Add(sep);
+                }
+
+                var link = new LinkLabel
+                {
+                    Text = crumb.name,
+                    AutoSize = true,
+                    Margin = new Padding(0, 3, 0, 0),
+                    LinkColor = isLast ? Color.Black : Color.FromArgb(0, 102, 204),
+                    ActiveLinkColor = Color.FromArgb(0, 78, 161),
+                    VisitedLinkColor = isLast ? Color.Black : Color.FromArgb(0, 102, 204),
+                    LinkBehavior = LinkBehavior.HoverUnderline,
+                    Enabled = !isLast,
+                    Font = new Font(ExplorerFontName, 9f)
+                };
+                string targetPath = crumb.path;
+                link.LinkClicked += (s, e) => NavigateTo(targetPath);
+                breadcrumbPanel.Controls.Add(link);
+            }
+
+            breadcrumbPanel.ResumeLayout();
+        }
+
+        /// <summary>
+        /// 現在のフォルダの内容を一覧表示する（filter で名前を絞り込み）
+        /// </summary>
+        private void PopulateList(string filter)
+        {
+            fileListView.BeginUpdate();
+            fileListView.Items.Clear();
+            flatItemList.Clear();
+
+            if (!Directory.Exists(currentPath))
+            {
+                fileListView.EndUpdate();
+                return;
+            }
+
+            filter = (filter ?? "").ToLower();
+
+            string[] directories;
+            string[] files;
+            try
+            {
+                directories = Directory.GetDirectories(currentPath)
+                    .Where(d => !IsProtectedFolder(d))
+                    .OrderBy(d => Path.GetFileName(d), StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+            }
+            catch (UnauthorizedAccessException) { directories = new string[0]; }
+            catch (IOException) { directories = new string[0]; }
+
+            try
+            {
+                files = Directory.GetFiles(currentPath)
+                    .OrderBy(f => Path.GetFileName(f), StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+            }
+            catch (UnauthorizedAccessException) { files = new string[0]; }
+            catch (IOException) { files = new string[0]; }
+
+            int index = 0;
+
+            foreach (var dir in directories)
+            {
+                string dirName = Path.GetFileName(dir);
+                if (!string.IsNullOrEmpty(filter) && dirName.IndexOf(filter, StringComparison.OrdinalIgnoreCase) < 0)
+                    continue;
+
+                var item = CreateListItem(dir, dirName, index, isDirectory: true);
+                fileListView.Items.Add(item);
+                flatItemList.Add(item);
+                index++;
+            }
+
+            foreach (var file in files)
+            {
+                string fileName = Path.GetFileName(file);
+                if (!string.IsNullOrEmpty(filter) && fileName.IndexOf(filter, StringComparison.OrdinalIgnoreCase) < 0)
+                    continue;
+
+                var item = CreateListItem(file, fileName, index, isDirectory: false);
+                fileListView.Items.Add(item);
+                flatItemList.Add(item);
+                index++;
+            }
+
+            fileListView.EndUpdate();
+        }
+
+        private ListViewItem CreateListItem(string fullPath, string displayName, int index, bool isDirectory)
+        {
+            string keyLabel;
+            if (index < 10) keyLabel = $"{index}: ";
+            else if (index < 36) keyLabel = $"{(char)('A' + index - 10)}: ";
+            else keyLabel = "";
+
+            DateTime updated = isDirectory ? Directory.GetLastWriteTime(fullPath) : File.GetLastWriteTime(fullPath);
+
+            var item = new ListViewItem(keyLabel + displayName)
+            {
+                Tag = fullPath
+            };
+            item.SubItems.Add(updated.ToString("yyyy/MM/dd HH:mm"));
+            item.ImageKey = GetIconKey(fullPath);
+
+            return item;
+        }
+
+        /// <summary>
+        /// アイコンを ImageList にキャッシュし、キー(=パス)を返す（エクスプローラー風表示用）
+        /// </summary>
+        private string GetIconKey(string path)
+        {
+            if (iconList.Images.ContainsKey(path))
+                return path;
+
+            NativeMethods.SHFILEINFO shinfo = new NativeMethods.SHFILEINFO();
+            uint flags = NativeMethods.SHGFI_ICON | NativeMethods.SHGFI_SMALLICON;
+
+            IntPtr hImg = NativeMethods.SHGetFileInfo(
+                path,
+                0,
+                ref shinfo,
+                (uint)Marshal.SizeOf(shinfo),
+                flags);
+
+            if (hImg != IntPtr.Zero && shinfo.hIcon != IntPtr.Zero)
+            {
+                try
+                {
+                    using (Icon icon = Icon.FromHandle(shinfo.hIcon))
+                    {
+                        iconList.Images.Add(path, new Bitmap(icon.ToBitmap(), iconList.ImageSize));
+                    }
+                    return path;
+                }
+                finally
+                {
+                    NativeMethods.DestroyIcon(shinfo.hIcon);
+                }
+            }
+
+            return null;
+        }
+
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
             if (e.CloseReason == CloseReason.UserClosing)
@@ -481,14 +966,46 @@ namespace WinSimpleFolderLauncher.Forms
             }
         }
 
+        private void FileListView_MouseClick(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Right)
+            {
+                var item = fileListView.GetItemAt(e.X, e.Y);
+                if (item != null)
+                {
+                    item.Selected = true;
+                    nodeContextMenu.Show(fileListView, e.Location);
+                }
+            }
+        }
+
         private void CopyPathItem_Click(object sender, EventArgs e)
         {
-            if (fileTree.SelectedNode?.Tag != null)
-                Clipboard.SetText(fileTree.SelectedNode.Tag.ToString());
+            string path = null;
+
+            if (explorerMode)
+            {
+                if (fileListView.SelectedItems.Count > 0)
+                    path = fileListView.SelectedItems[0].Tag as string;
+            }
+            else
+            {
+                path = fileTree.SelectedNode?.Tag as string;
+            }
+
+            if (path != null)
+                Clipboard.SetText(path);
         }
 
         protected override void OnPaintBackground(PaintEventArgs e)
         {
+            // エクスプローラー風は白一色（BackColor）
+            if (explorerMode)
+            {
+                base.OnPaintBackground(e);
+                return;
+            }
+
             using (var brush =
                 new System.Drawing.Drawing2D.LinearGradientBrush(
                     ClientRectangle,
@@ -513,12 +1030,8 @@ namespace WinSimpleFolderLauncher.Forms
         }
 
         /// <summary>
-        /// フォルダを再帰的に読み込む
+        /// フォルダを再帰的に読み込む（ツリー表示用）
         /// </summary>
-        /// <param name="path"></param>
-        /// <param name="parentNodes"></param>
-        /// <param name="recursive"></param>
-        /// <param name="filter"></param>
         private void LoadFolder(
             string path,
             TreeNodeCollection parentNodes,
@@ -607,52 +1120,20 @@ namespace WinSimpleFolderLauncher.Forms
         }
 
         /// <summary>
-        /// アイコン設定
+        /// アイコン設定（ツリー表示用）
         /// </summary>
-        /// <param name="node"></param>
-        /// <param name="path"></param>
         private void SetNodeIcon(TreeNode node, string path)
         {
-            NativeMethods.SHFILEINFO shinfo = new NativeMethods.SHFILEINFO();
-            uint flags = NativeMethods.SHGFI_ICON | NativeMethods.SHGFI_SMALLICON;
-
-            IntPtr hImg = NativeMethods.SHGetFileInfo(
-                path,
-                0,
-                ref shinfo,
-                (uint)Marshal.SizeOf(shinfo),
-                flags);
-
-            if (hImg != IntPtr.Zero && shinfo.hIcon != IntPtr.Zero)
+            string key = GetIconKey(path);
+            if (key != null)
             {
-                try
-                {
-                    if (!iconList.Images.ContainsKey(path))
-                    {
-                        using (Icon icon = Icon.FromHandle(shinfo.hIcon))
-                        {
-                            // ImageList.ImageSizeに合わせてリサイズして追加
-                            iconList.Images.Add(path, new Bitmap(icon.ToBitmap(), iconList.ImageSize));
-                        }
-                    }
-                    node.ImageKey = path;
-                    node.SelectedImageKey = path;
-                }
-                finally
-                {
-                    NativeMethods.DestroyIcon(shinfo.hIcon);
-                }
+                node.ImageKey = key;
+                node.SelectedImageKey = key;
             }
         }
 
-        /// <summary>
-        /// FileTree_DrawNode
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
         private void FileTree_DrawNode(object sender, DrawTreeNodeEventArgs e)
         {
-
             if (e.Node.IsSelected)
             {
                 // 選択時の背景色描画
@@ -668,11 +1149,6 @@ namespace WinSimpleFolderLauncher.Forms
                 TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
         }
 
-        /// <summary>
-        /// FileTree_NodeMouseDoubleClick
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
         private void FileTree_NodeMouseDoubleClick(object sender, TreeNodeMouseClickEventArgs e)
         {
             OpenFileOrFolder(e.Node);
@@ -681,7 +1157,7 @@ namespace WinSimpleFolderLauncher.Forms
         private void FileTree_KeyDown(object sender, KeyEventArgs e)
         {
             // 上キーで検索ボックスに戻る
-            if (e.KeyCode == Keys.Up && fileTree.SelectedNode == fileTree.Nodes[0])
+            if (e.KeyCode == Keys.Up && fileTree.Nodes.Count > 0 && fileTree.SelectedNode == fileTree.Nodes[0])
             {
                 txtSearch.Focus();
                 e.Handled = true;
@@ -719,34 +1195,96 @@ namespace WinSimpleFolderLauncher.Forms
             }
         }
 
+        private void FileListView_KeyDown(object sender, KeyEventArgs e)
+        {
+            // 先頭項目でUpキー -> 検索ボックスへ戻る
+            if (e.KeyCode == Keys.Up && fileListView.SelectedIndices.Count > 0 && fileListView.SelectedIndices[0] == 0)
+            {
+                txtExplorerSearch.Focus();
+                e.Handled = true;
+                return;
+            }
+
+            // Backspace -> 一つ上のフォルダへ（ルートより上へは行かない）
+            if (e.KeyCode == Keys.Back)
+            {
+                if (!string.Equals(currentPath.TrimEnd(Path.DirectorySeparatorChar),
+                                   currentRootPath.TrimEnd(Path.DirectorySeparatorChar),
+                                   StringComparison.OrdinalIgnoreCase))
+                {
+                    string parent = Directory.GetParent(currentPath)?.FullName;
+                    if (parent != null) NavigateTo(parent);
+                }
+                e.Handled = true;
+                return;
+            }
+
+            int index = -1;
+
+            if (e.KeyCode >= Keys.D0 && e.KeyCode <= Keys.D9)            // メイン数字キー
+                index = e.KeyCode - Keys.D0;
+            else if (e.KeyCode >= Keys.NumPad0 && e.KeyCode <= Keys.NumPad9) // テンキー
+                index = e.KeyCode - Keys.NumPad0;
+            else if (e.KeyCode >= Keys.A && e.KeyCode <= Keys.Z)         // A-Z
+                index = 10 + (e.KeyCode - Keys.A);
+
+            if (index >= 0)
+            {
+                if (index < flatItemList.Count)
+                    OpenListItem(flatItemList[index]);
+                e.Handled = true;
+                e.SuppressKeyPress = true; // ListViewの頭文字ジャンプを抑止
+            }
+        }
 
         /// <summary>
-        /// ファイルかフォルダを開く
+        /// ファイルかフォルダを開く（ツリー表示用）
         /// </summary>
-        /// <param name="node"></param>
         private void OpenFileOrFolder(TreeNode node)
         {
             string path = node.Tag as string;
 
             if (File.Exists(path))
             {
-                try
-                {
-                    Process.Start(new ProcessStartInfo
-                    {
-                        FileName = path,
-                        UseShellExecute = true
-                    });
-                    Hide();
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"{LanguageManager.GetString("MsgSaveFailed")}{ex.Message}");
-                }
+                StartFile(path);
             }
             else if (Directory.Exists(path))
             {
                 node.Toggle();
+            }
+        }
+
+        /// <summary>
+        /// ファイルなら起動、フォルダなら中へ移動する（エクスプローラー風表示用）
+        /// </summary>
+        private void OpenListItem(ListViewItem item)
+        {
+            string path = item.Tag as string;
+
+            if (File.Exists(path))
+            {
+                StartFile(path);
+            }
+            else if (Directory.Exists(path))
+            {
+                NavigateTo(path);
+            }
+        }
+
+        private void StartFile(string path)
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = path,
+                    UseShellExecute = true
+                });
+                Hide();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"{LanguageManager.GetString("MsgSaveFailed")}{ex.Message}");
             }
         }
 

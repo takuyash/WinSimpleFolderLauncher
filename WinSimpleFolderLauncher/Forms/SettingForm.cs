@@ -30,12 +30,14 @@ namespace WinSimpleFolderLauncher.Forms
         private ComboBox cmbTriggerKey;
         private Label lblTriggerKey;
 
+        private ComboBox cmbViewStyle;
+        private Label lblViewStyle;
         public SettingsForm(string iniFilePath)
         {
             iniPath = iniFilePath;
 
             Text = LanguageManager.GetString("SettingTitle");
-            Size = new Size(450, 320);
+            Size = new Size(450, 360);
             StartPosition = FormStartPosition.CenterScreen;
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
@@ -139,6 +141,30 @@ namespace WinSimpleFolderLauncher.Forms
             };
             Controls.Add(cmbLang);
 
+            lblViewStyle = new Label()
+            {
+                Text = LanguageManager.GetString("SettingViewStyle"),
+                Left = 10,
+                Top = 150,
+                Width = 100,
+                ForeColor = Color.Gainsboro,
+                Font = uiFont
+            };
+            Controls.Add(lblViewStyle);
+
+            cmbViewStyle = new ComboBox()
+            {
+                Left = 110,
+                Top = 146,
+                Width = 180,
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                BackColor = Color.FromArgb(45, 45, 45),
+                ForeColor = Color.White,
+                Font = uiFont
+            };
+            FillViewStyleItems(0);
+            Controls.Add(cmbViewStyle);
+
             chkEnableHotKey = new CheckBox()
             {
                 Left = 10,
@@ -227,11 +253,21 @@ namespace WinSimpleFolderLauncher.Forms
                     cmbLaunchKeyCount.SelectedItem = ini["ShiftPressCount"];
                 if (ini.ContainsKey("TriggerKey"))
                     cmbTriggerKey.SelectedItem = ini["TriggerKey"];
+                if (ini.ContainsKey("ViewStyle"))
+                    cmbViewStyle.SelectedIndex =
+                        string.Equals(ini["ViewStyle"], "Explorer", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
             }
             else
             {
                 chkEnableHotKey.Checked = true;
             }
+        }
+        private void FillViewStyleItems(int selectedIndex)
+        {
+            cmbViewStyle.Items.Clear();
+            cmbViewStyle.Items.Add(LanguageManager.GetString("ViewStyleTree"));
+            cmbViewStyle.Items.Add(LanguageManager.GetString("ViewStyleExplorer"));
+            cmbViewStyle.SelectedIndex = selectedIndex;
         }
 
         private void UpdateUI()
@@ -245,6 +281,8 @@ namespace WinSimpleFolderLauncher.Forms
             chkEnableHotKey.Text = LanguageManager.GetString("SettingEnableHotkey");
             lblLaunchKeyCount.Text = LanguageManager.GetString("SettingLaunchKeyCount");
             lblTriggerKey.Text = LanguageManager.GetString("SettingTriggerKey");
+            lblViewStyle.Text = LanguageManager.GetString("SettingViewStyle");
+            FillViewStyleItems(cmbViewStyle.SelectedIndex);
         }
 
         private void BtnBrowse_Click(object sender, EventArgs e)
@@ -323,7 +361,8 @@ namespace WinSimpleFolderLauncher.Forms
                     $"Language={cmbLang.Text}\n" +
                     $"EnableHotKey={chkEnableHotKey.Checked}\n" +
                     $"TriggerKey={cmbTriggerKey.SelectedItem}\n" +
-                    $"ShiftPressCount={cmbLaunchKeyCount.SelectedItem}\n"
+                    $"ShiftPressCount={cmbLaunchKeyCount.SelectedItem}\n" +
+                    $"ViewStyle={(cmbViewStyle.SelectedIndex == 1 ? "Explorer" : "Tree")}\n"
                 );
 
                 // Program側でキャッシュしているホットキー関連設定（EnableHotKey / TriggerKey / ShiftPressCount）を

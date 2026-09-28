@@ -69,7 +69,13 @@
             { "DialogSelectDir", "フォルダを選択してください" },
             { "SettingEnableHotkey", "ホットキーを有効にする" },
             { "SettingLaunchKeyCount", "連打回数 (2～5)回:" },
-            { "SettingTriggerKey", "起動キー" }
+            { "SettingTriggerKey", "起動キー" },
+            { "SettingViewStyle", "表示スタイル:" },
+            { "ViewStyleTree", "ツリー（ダーク）" },
+            { "ViewStyleExplorer", "エクスプローラー風" },
+            { "ColName", "名前" },
+            { "ColModified", "更新日時" },
+            { "SearchPlaceholderIn", "{0}の検索" }
         };
 
         private static readonly Dictionary<string, string> English = new()
@@ -104,7 +110,13 @@
             { "DialogSelectDir", "Select a folder" },
             { "SettingEnableHotkey", "Enable hotkey" },
             { "SettingLaunchKeyCount", "press count (2–5):" },
-            { "SettingTriggerKey", "Trigger Key:" }
+            { "SettingTriggerKey", "Trigger Key:" },
+            { "SettingViewStyle", "View Style:" },
+            { "ViewStyleTree", "Tree (Dark)" },
+            { "ViewStyleExplorer", "Explorer-like" },
+            { "ColName", "Name" },
+            { "ColModified", "Date modified" },
+            { "SearchPlaceholderIn", "Search {0}" }
 
         };
     }
