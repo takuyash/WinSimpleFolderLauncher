@@ -4,9 +4,6 @@ using WinSimpleFolderLauncher.Helpers;
 
 namespace WinSimpleFolderLauncher.Forms
 {
-
-
-
     public class LauncherForm : Form
     {
         // ===== 共通 =====
@@ -23,6 +20,8 @@ namespace WinSimpleFolderLauncher.Forms
 
         // ===== ツリー表示（ダーク） =====
         private TreeView fileTree;
+        private Panel treeHost;           // ツリーの外側（検索ボックスとの余白用）
+        private Panel treeBorder;         // ツリーを囲む枠
         private List<TreeNode> flatNodeList = new List<TreeNode>();
         private Panel searchPanel;        // 検索ボックス用パネル（アイコン＋テキストボックス）
         private PictureBox picSearchIcon; // 検索アイコン（虫眼鏡）
@@ -40,6 +39,7 @@ namespace WinSimpleFolderLauncher.Forms
         private static readonly Color NavBarSeparator = Color.FromArgb(229, 229, 229);
         private static readonly Color SearchBoxBack = Color.FromArgb(243, 243, 243);
         private static readonly Color SearchBoxBorder = Color.FromArgb(213, 213, 213);
+        private static readonly Color TreeBorderColor = Color.FromArgb(90, 90, 90); // ツリー表示の枠線色
 
         // タスクトレイ
         private NotifyIcon trayIcon;
@@ -89,19 +89,20 @@ namespace WinSimpleFolderLauncher.Forms
 
             // ================================
             // 検索ボックス（ツリー表示用：アイコン付きパネル）
+            // 枠線は Paint で自前描画（ツリーの枠と色を揃える）
             // ================================
             searchPanel = new Panel
             {
                 Dock = DockStyle.Top,
                 Height = 26,
                 BackColor = Color.FromArgb(45, 45, 45),
-                BorderStyle = BorderStyle.FixedSingle,
-                Padding = new Padding(4, 0, 2, 0)
+                Padding = new Padding(4, 1, 2, 1)
             };
+            searchPanel.Paint += (s, e) => DrawBorder(e.Graphics, searchPanel.ClientRectangle, TreeBorderColor);
 
             txtSearch = new TextBox
             {
-                Dock = DockStyle.Fill,
+                Dock = DockStyle.None, // 縦中央寄せのため手動レイアウト
                 BackColor = Color.FromArgb(45, 45, 45),
                 ForeColor = Color.White,
                 BorderStyle = BorderStyle.None,
@@ -129,9 +130,17 @@ namespace WinSimpleFolderLauncher.Forms
                 Image = CreateSearchIcon(Color.Gainsboro, 14)
             };
 
-            // 追加順に注意：先にFillのTextBox、後からLeftのPictureBoxを足す
             searchPanel.Controls.Add(txtSearch);
             searchPanel.Controls.Add(picSearchIcon);
+
+            // パネルのサイズ・フォントが変わったら、テキストボックスを縦中央に配置し直す
+            searchPanel.Resize += (s, e) =>
+            {
+                searchPanel.Invalidate();
+                LayoutCenteredTextBox(searchPanel, txtSearch, picSearchIcon.Width);
+            };
+            txtSearch.SizeChanged += (s, e) => LayoutCenteredTextBox(searchPanel, txtSearch, picSearchIcon.Width);
+            LayoutCenteredTextBox(searchPanel, txtSearch, picSearchIcon.Width);
 
             // ================================
             // 上部ナビゲーションバー（エクスプローラー風表示用）
@@ -197,6 +206,7 @@ namespace WinSimpleFolderLauncher.Forms
 
             // ================================
             // TreeView（ツリー表示）
+            // treeHost（余白） > treeBorder（1px の枠） > fileTree
             // ================================
             fileTree = new TreeView
             {
@@ -215,6 +225,22 @@ namespace WinSimpleFolderLauncher.Forms
             fileTree.NodeMouseDoubleClick += FileTree_NodeMouseDoubleClick;
             fileTree.KeyDown += FileTree_KeyDown;
             fileTree.NodeMouseClick += FileTree_NodeMouseClick;
+
+            treeBorder = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = TreeBorderColor, // これが枠線の色になる
+                Padding = new Padding(1)
+            };
+            treeBorder.Controls.Add(fileTree);
+
+            treeHost = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = Color.Transparent,
+                Padding = new Padding(0, 6, 0, 0) // 検索ボックスとの間隔
+            };
+            treeHost.Controls.Add(treeBorder);
 
             // ================================
             // ListView（エクスプローラー風の「詳細」ビュー）
@@ -257,7 +283,7 @@ namespace WinSimpleFolderLauncher.Forms
             };
 
             // Dock順に注意：Fill系を先に、Top系（検索/ナビバー）を後に追加する
-            Controls.Add(fileTree);
+            Controls.Add(treeHost);
             Controls.Add(fileListView);
             Controls.Add(lblNoPath);
             Controls.Add(searchPanel);
@@ -292,6 +318,37 @@ namespace WinSimpleFolderLauncher.Forms
         }
 
         /// <summary>
+        /// 1px の枠線を描画する
+        /// </summary>
+        private static void DrawBorder(Graphics g, Rectangle bounds, Color color)
+        {
+            using (var pen = new Pen(color))
+            {
+                var r = bounds;
+                r.Width -= 1;
+                r.Height -= 1;
+                g.DrawRectangle(pen, r);
+            }
+        }
+
+        /// <summary>
+        /// TextBox（枠なし）をホストパネルの縦中央に配置する。
+        /// Dock.Fill だと上詰めになり文字が上にずれて見えるため、手動で中央寄せする。
+        /// </summary>
+        /// <param name="leftReserved">左側に確保する幅（アイコン分）</param>
+        private static void LayoutCenteredTextBox(Panel host, TextBox tb, int leftReserved)
+        {
+            int left = host.Padding.Left + leftReserved;
+            int width = host.ClientSize.Width - left - host.Padding.Right;
+            if (width < 1) return;
+
+            int top = (host.ClientSize.Height - tb.Height) / 2;
+            if (top < 0) top = 0;
+
+            tb.SetBounds(left, top, width, tb.Height);
+        }
+
+        /// <summary>
         /// エクスプローラー風の上部ナビゲーションバー（左:パンくず／右:検索ボックス）を作る
         /// </summary>
         private void BuildExplorerNavBar()
@@ -320,34 +377,28 @@ namespace WinSimpleFolderLauncher.Forms
                 Padding = new Padding(4, 2, 0, 2)
             };
 
+            const int iconAreaWidth = 22;
+
             var searchBox = new Panel
             {
                 Dock = DockStyle.Fill,
                 BackColor = SearchBoxBack,
-                Padding = new Padding(4, 0, 4, 0)
+                Padding = new Padding(4, 1, 4, 1)
             };
-            searchBox.Paint += (s, e) =>
-            {
-                using (var pen = new Pen(SearchBoxBorder))
-                {
-                    var r = searchBox.ClientRectangle;
-                    r.Width -= 1;
-                    r.Height -= 1;
-                    e.Graphics.DrawRectangle(pen, r);
-                }
-            };
+            searchBox.Paint += (s, e) => DrawBorder(e.Graphics, searchBox.ClientRectangle, SearchBoxBorder);
 
             var searchIconPanel = new Panel
             {
                 Dock = DockStyle.Left,
-                Width = 22,
+                Width = iconAreaWidth,
                 BackColor = Color.Transparent
             };
             searchIconPanel.Paint += SearchIcon_Paint;
+            searchIconPanel.Resize += (s, e) => searchIconPanel.Invalidate();
 
             txtExplorerSearch = new TextBox
             {
-                Dock = DockStyle.Fill,
+                Dock = DockStyle.None, // 縦中央寄せのため手動レイアウト
                 BackColor = SearchBoxBack,
                 ForeColor = Color.Black,
                 BorderStyle = BorderStyle.None,
@@ -377,6 +428,16 @@ namespace WinSimpleFolderLauncher.Forms
             searchBox.Controls.Add(txtExplorerSearch);
             searchBox.Controls.Add(searchIconPanel);
             searchContainer.Controls.Add(searchBox);
+
+            // サイズ・フォント変更時に、文字を縦中央へ配置し直す
+            searchBox.Resize += (s, e) =>
+            {
+                searchBox.Invalidate();
+                LayoutCenteredTextBox(searchBox, txtExplorerSearch, iconAreaWidth);
+            };
+            txtExplorerSearch.SizeChanged += (s, e) =>
+                LayoutCenteredTextBox(searchBox, txtExplorerSearch, iconAreaWidth);
+            LayoutCenteredTextBox(searchBox, txtExplorerSearch, iconAreaWidth);
 
             // --- 左側：パンくずリスト ---
             breadcrumbPanel = new FlowLayoutPanel
@@ -427,9 +488,12 @@ namespace WinSimpleFolderLauncher.Forms
             Size = explorerMode ? new Size(560, 620) : new Size(420, 600);
             BackColor = explorerMode ? Color.White : SystemColors.Control;
 
+            // ツリー表示は枠が見えるようにフォーム周囲に余白を取る
+            Padding = explorerMode ? Padding.Empty : new Padding(6);
+
             searchPanel.Visible = !explorerMode;
             navBar.Visible = explorerMode;
-            if (explorerMode) fileTree.Visible = false;
+            if (explorerMode) treeHost.Visible = false;
             else fileListView.Visible = false;
 
             if (explorerMode)
@@ -493,16 +557,26 @@ namespace WinSimpleFolderLauncher.Forms
 
         /// <summary>
         /// 検索ボックス左の虫眼鏡アイコンを描画する（エクスプローラー風表示用）
+        /// パネルの中央に描画する
         /// </summary>
         private void SearchIcon_Paint(object sender, PaintEventArgs e)
         {
+            var panel = (Control)sender;
             var g = e.Graphics;
             g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+
+            const int circle = 9;   // 円の直径
+            const int handle = 4;   // 持ち手の長さ
+            int total = circle + handle;
+
+            int ox = (panel.Width - total) / 2;
+            int oy = (panel.Height - total) / 2;
+
             using (var pen = new Pen(Color.FromArgb(120, 120, 120), 1.4f))
             {
-                var rect = new Rectangle(4, 4, 9, 9);
+                var rect = new Rectangle(ox, oy, circle, circle);
                 g.DrawEllipse(pen, rect);
-                g.DrawLine(pen, rect.Right - 1, rect.Bottom - 1, rect.Right + 4, rect.Bottom + 4);
+                g.DrawLine(pen, rect.Right - 1, rect.Bottom - 1, rect.Right + handle, rect.Bottom + handle);
             }
         }
 
@@ -657,19 +731,23 @@ namespace WinSimpleFolderLauncher.Forms
 
             if (string.IsNullOrWhiteSpace(currentRootPath) || !Directory.Exists(currentRootPath))
             {
-                fileTree.Visible = false;
+                treeHost.Visible = false;
                 lblNoPath.Visible = true;
                 fileTree.EndUpdate();
                 return;
             }
 
-            fileTree.Visible = true;
+            treeHost.Visible = true;
             lblNoPath.Visible = false;
 
             LoadFolder(currentRootPath, fileTree.Nodes, true, txtSearch.Text.ToLower()); // 第4引数でフィルタ
-            fileTree.EndUpdate();
 
+            // ★ キー番号（"0: " など）をノード文字列に付与する処理は、
+            //    EndUpdate の前（＝ツリーのレイアウト確定前）に行う。
+            //    描画後に Text を変えると、ノードの幅が古いままになり文字が切れる原因になる。
             BuildFlatNodeList(fileTree.Nodes);
+
+            fileTree.EndUpdate();
 
             if (fileTree.Nodes.Count > 0 && fileTree.SelectedNode == null)
             {
@@ -1132,21 +1210,52 @@ namespace WinSimpleFolderLauncher.Forms
             }
         }
 
+        /// <summary>
+        /// ツリーのノード描画。
+        /// TextRenderer の既定パディングを無効化し、実際の文字幅に合わせて描画領域を広げることで、
+        /// 文字が右端で切れないようにする。
+        /// </summary>
         private void FileTree_DrawNode(object sender, DrawTreeNodeEventArgs e)
         {
+            if (e.Node == null || e.Bounds.Width <= 0 || e.Bounds.Height <= 0)
+                return;
+
+            Font font = e.Node.NodeFont ?? e.Node.TreeView.Font;
+
+            const TextFormatFlags flags =
+                TextFormatFlags.VerticalCenter |
+                TextFormatFlags.Left |
+                TextFormatFlags.NoPadding |
+                TextFormatFlags.NoPrefix |
+                TextFormatFlags.SingleLine;
+
+            // 実際に必要な文字幅を測る
+            Size textSize = TextRenderer.MeasureText(
+                e.Graphics,
+                e.Node.Text,
+                font,
+                new Size(int.MaxValue, e.Bounds.Height),
+                flags);
+
+            // ノードの Bounds が実際の文字より狭くても、文字が入る幅を確保する
+            int width = Math.Max(e.Bounds.Width, textSize.Width + 6);
+            var drawRect = new Rectangle(e.Bounds.X, e.Bounds.Y, width, e.Bounds.Height);
+
             if (e.Node.IsSelected)
             {
                 // 選択時の背景色描画
-                e.Graphics.FillRectangle(Brushes.DarkCyan, e.Bounds);
+                e.Graphics.FillRectangle(Brushes.DarkCyan, drawRect);
             }
+
+            var textRect = new Rectangle(drawRect.X + 2, drawRect.Y, drawRect.Width - 2, drawRect.Height);
 
             TextRenderer.DrawText(
                 e.Graphics,
                 e.Node.Text,
-                e.Node.TreeView.Font,
-                e.Bounds, // テキスト領域に描画
+                font,
+                textRect,
                 Color.White,
-                TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
+                flags);
         }
 
         private void FileTree_NodeMouseDoubleClick(object sender, TreeNodeMouseClickEventArgs e)
