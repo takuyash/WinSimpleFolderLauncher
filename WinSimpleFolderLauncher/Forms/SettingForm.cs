@@ -168,7 +168,7 @@ namespace WinSimpleFolderLauncher.Forms
             chkEnableHotKey = new CheckBox()
             {
                 Left = 10,
-                Top = 150,
+                Top = 180,
                 Width = 300,
                 Text = LanguageManager.GetString("SettingEnableHotkey"),
                 ForeColor = Color.Gainsboro,
@@ -180,7 +180,7 @@ namespace WinSimpleFolderLauncher.Forms
             {
                 Text = LanguageManager.GetString("SettingTriggerKey"),
                 Left = 10,
-                Top = 180,
+                Top = 210,
                 Width = 100,
                 ForeColor = Color.Gainsboro,
                 Font = uiFont
@@ -190,7 +190,7 @@ namespace WinSimpleFolderLauncher.Forms
             cmbTriggerKey = new ComboBox()
             {
                 Left = 110,
-                Top = 176,
+                Top = 206,
                 Width = 100,
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 BackColor = Color.FromArgb(45, 45, 45),
@@ -205,7 +205,7 @@ namespace WinSimpleFolderLauncher.Forms
             {
                 Text = LanguageManager.GetString("SettingLaunchKeyCount"),
                 Left = 10,
-                Top = 210,
+                Top = 240,
                 Width = 200,
                 ForeColor = Color.Gainsboro,
                 Font = uiFont
@@ -215,7 +215,7 @@ namespace WinSimpleFolderLauncher.Forms
             cmbLaunchKeyCount = new ComboBox()
             {
                 Left = 220,
-                Top = 206,
+                Top = 236,
                 Width = 60,
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 BackColor = Color.FromArgb(45, 45, 45),
@@ -230,7 +230,7 @@ namespace WinSimpleFolderLauncher.Forms
             {
                 Text = LanguageManager.GetString("SettingSave"),
                 Left = 330,
-                Top = 245,
+                Top = 275,
                 Width = 90,
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Color.FromArgb(70, 130, 140),
@@ -262,6 +262,7 @@ namespace WinSimpleFolderLauncher.Forms
                 chkEnableHotKey.Checked = true;
             }
         }
+
         private void FillViewStyleItems(int selectedIndex)
         {
             cmbViewStyle.Items.Clear();
