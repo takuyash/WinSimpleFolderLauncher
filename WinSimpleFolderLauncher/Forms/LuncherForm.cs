@@ -439,17 +439,35 @@ namespace WinSimpleFolderLauncher.Forms
                 LayoutCenteredTextBox(searchBox, txtExplorerSearch, iconAreaWidth);
             LayoutCenteredTextBox(searchBox, txtExplorerSearch, iconAreaWidth);
 
-            // --- 左側：パンくずリスト ---
+            // --- 左側：パンくずリスト（SearchBoxBorder で四方を囲む） ---
+            // searchContainer と同じ上下 2px の余白を取り、高さを揃える
+            var breadcrumbWrapper = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = Color.White,
+                Padding = new Padding(0, 2, 0, 2)
+            };
+
+            var breadcrumbContainer = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = SearchBoxBack,
+                Padding = new Padding(1)
+            };
+            breadcrumbContainer.Paint += (s, e) => DrawBorder(e.Graphics, breadcrumbContainer.ClientRectangle, SearchBoxBorder);
+
             breadcrumbPanel = new FlowLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 WrapContents = false,
                 FlowDirection = FlowDirection.LeftToRight,
                 BackColor = Color.White,
-                Padding = new Padding(2, 8, 2, 0)
+                Padding = new Padding(4, 2, 2, 0)
             };
 
-            navBar.Controls.Add(breadcrumbPanel);
+            breadcrumbContainer.Controls.Add(breadcrumbPanel);
+            breadcrumbWrapper.Controls.Add(breadcrumbContainer);
+            navBar.Controls.Add(breadcrumbWrapper);
             navBar.Controls.Add(searchContainer);
             navBar.Controls.Add(navBarDivider);
         }
