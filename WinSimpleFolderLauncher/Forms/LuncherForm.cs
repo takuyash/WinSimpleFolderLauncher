@@ -184,11 +184,22 @@ namespace WinSimpleFolderLauncher.Forms
                 Application.Exit();
             });
 
+            // 「開く」はグローバルホットキーと同じショートカットを右側に表示
+            menuOpen.ShortcutKeyDisplayString = "Ctrl+Shift+I";
+            menuOpen.Font = new Font(trayMenu.Font, FontStyle.Bold); // 既定の操作として強調
+
+            foreach (var item in new[] { menuOpen, menuSetting, menuHelp, menuExit })
+                item.Padding = new Padding(0, 5, 0, 5); // 項目の高さにゆとりを持たせる
+
             trayMenu.Items.Add(menuOpen);
             trayMenu.Items.Add(menuSetting);
             trayMenu.Items.Add(new ToolStripSeparator());
             trayMenu.Items.Add(menuHelp);
             trayMenu.Items.Add(menuExit);
+
+            trayMenu.Padding = new Padding(0, 4, 0, 4);
+            trayMenu.HandleCreated += (s, e) =>
+                TrayMenuRenderer.ApplyWindowStyle(trayMenu, ((TrayMenuRenderer)trayMenu.Renderer).Palette.Border);
 
             trayIcon = new NotifyIcon
             {
@@ -518,22 +529,40 @@ namespace WinSimpleFolderLauncher.Forms
             {
                 lblNoPath.ForeColor = Color.Black;
                 lblNoPath.BackColor = Color.White;
-
-                trayMenu.Renderer = new ToolStripProfessionalRenderer();
-                trayMenu.BackColor = SystemColors.Control;
-                trayMenu.ForeColor = SystemColors.ControlText;
             }
             else
             {
                 lblNoPath.ForeColor = Color.LightGray;
                 lblNoPath.BackColor = Color.Transparent;
-
-                trayMenu.Renderer = new ToolStripProfessionalRenderer(new DarkColorTable());
-                trayMenu.BackColor = Color.FromArgb(35, 35, 35);
-                trayMenu.ForeColor = Color.White;
             }
 
+            ApplyTrayMenuTheme(explorerMode ? TrayMenuPalette.Light : TrayMenuPalette.Dark);
+
             Invalidate();
+        }
+
+        /// <summary>
+        /// タスクトレイメニューに配色とアイコンを適用する
+        /// </summary>
+        private void ApplyTrayMenuTheme(TrayMenuPalette palette)
+        {
+            trayMenu.Renderer = new TrayMenuRenderer(palette) { DangerItem = menuExit };
+            trayMenu.BackColor = palette.Background;
+            trayMenu.ForeColor = palette.Text;
+
+            SetMenuImage(menuOpen, TrayMenuIcons.Folder(palette.Folder));
+            SetMenuImage(menuSetting, TrayMenuIcons.Gear(palette.Accent));
+            SetMenuImage(menuHelp, TrayMenuIcons.Help(palette.Accent));
+            SetMenuImage(menuExit, TrayMenuIcons.Power(palette.Danger));
+
+            TrayMenuRenderer.ApplyWindowStyle(trayMenu, palette.Border);
+        }
+
+        private static void SetMenuImage(ToolStripMenuItem item, Image image)
+        {
+            var old = item.Image;
+            item.Image = image;
+            old?.Dispose();
         }
 
         /// <summary>
@@ -1433,18 +1462,6 @@ namespace WinSimpleFolderLauncher.Forms
             if (node.IsExpanded) node.Collapse();
             else node.Expand();
         }
-    }
-
-    // ダークテーマ用 ToolStrip
-    internal class DarkColorTable : ProfessionalColorTable
-    {
-        public override Color MenuBorder => Color.FromArgb(60, 60, 60);
-        public override Color MenuItemBorder => Color.FromArgb(60, 60, 60);
-        public override Color MenuItemSelected => Color.FromArgb(70, 130, 140);
-        public override Color ToolStripDropDownBackground => Color.FromArgb(35, 35, 35);
-        public override Color ImageMarginGradientBegin => Color.FromArgb(35, 35, 35);
-        public override Color ImageMarginGradientMiddle => Color.FromArgb(35, 35, 35);
-        public override Color ImageMarginGradientEnd => Color.FromArgb(35, 35, 35);
     }
 
 }
